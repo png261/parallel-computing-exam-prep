@@ -1,6 +1,5 @@
 from manim import *
 import numpy as np
-from extras import seg_01_09, seg_01_13, seg_01_10
 from scene_utils import play_module_drills
 from scene_utils import (
     setup_bg, make_header, make_trap_banner, clear_stage,
@@ -70,14 +69,17 @@ class Scene01Foundations(Scene):
         self.s04()
         self.s05()
         self.s06()
+        self.s14()
+        self.s15()
+        self.s16()
         self.s07()
+        self.s17()
         self.s11()
-        self.s08()
-        self.s12()
-        seg_01_09(self)
-        seg_01_13(self)
-        seg_01_10(self)
-        play_module_drills(self, "M1", "Ch 1, 2, 7")
+        self.s18()
+        self.s19()
+        self.s20()
+        self.s21()
+        play_module_drills(self, "M1", "Ch 1, 2")
 
     # ------------------------------------------------------------ 01_01
     def s01(self):
@@ -111,16 +113,16 @@ class Scene01Foundations(Scene):
         c2 = chip(0, CYAN, ic2, "60–70", "phút")
         c3 = chip(4.1, EMERALD, ic3, "Đóng sách", "chỉ máy tính bỏ túi", 30)
 
-        names = ["Nền tảng", "OpenMP", "MPI", "CUDA", "Thuật toán", "Luyện đề"]
-        cols = [CYAN, AMBER, EMERALD, VIOLET, CORAL, TEXT_MAIN]
-        xs = np.linspace(-5.0, 5.0, 6)
+        names = ["Nền tảng", "Threads + OpenMP", "MPI", "CUDA", "Luyện đề"]
+        cols = [CYAN, AMBER, EMERALD, VIOLET, TEXT_MAIN]
+        xs = np.linspace(-4.6, 4.6, 5)
         line = Line(P(-5.6, -2.1), P(5.6, -2.1), color=BORDER_DIM, stroke_width=3)
         nodes = VGroup(); labs = VGroup()
         for i, (n, c, x) in enumerate(zip(names, cols, xs)):
             d = Circle(0.24, color=c, fill_color=PANEL_BG, fill_opacity=1, stroke_width=3).move_to(P(x, -2.1))
             num = T(str(i + 1), 16, c, bold=True).move_to(d)
             nodes.add(VGroup(d, num))
-            labs.add(T(n, 18, TEXT_MAIN, maxw=1.7).move_to(P(x, -2.75)))
+            labs.add(T(n, 18, TEXT_MAIN, maxw=2.1).move_to(P(x, -2.75)))
         token = Dot(radius=0.13, color=AMBER).move_to(P(xs[0], -2.1))
 
         steps = [
@@ -130,7 +132,7 @@ class Scene01Foundations(Scene):
             ([FadeIn(c3, shift=UP * 0.2)], 2.2),
             ([Create(line), FadeIn(nodes), FadeIn(labs), FadeIn(token)], 1.5),
         ]
-        for i in range(1, 6):
+        for i in range(1, 5):
             steps.append(([token.animate.move_to(P(xs[i], -2.1)),
                            nodes[i][0].animate.set_fill(cols[i], opacity=0.35)], 1.3))
         play_voiced(self, "01_01", steps)
@@ -138,11 +140,11 @@ class Scene01Foundations(Scene):
 
     # ------------------------------------------------------------ 01_02
     def s02(self):
-        hdr = make_header("Vì sao tăng tốc tuần tự dừng lại", "Chương 1 & 5", CYAN)
+        hdr = make_header("Vì sao tăng tốc tuần tự dừng lại", "Chương 1", CYAN)
         cxs = [-4.4, 0.0, 4.4]
         pans = VGroup(*[panel(c, 0.0, 4.1, 4.8) for c in cxs])
         titles = VGroup(*[T(s, 22, col, bold=True).move_to(P(c, 2.05)) for s, col, c in
-                          zip(["1. Tín hiệu", "2. Thu nhỏ", "3. Công suất"], [CYAN, VIOLET, CORAL], cxs)])
+                          zip(["1. Tín hiệu", "2. Thu nhỏ", "3. Kinh tế"], [CYAN, VIOLET, CORAL], cxs)])
 
         # panel 1: chip + race
         cx = cxs[0]
@@ -172,24 +174,18 @@ class Scene01Foundations(Scene):
         t_a = T("transistor", 16, TEXT_MUTED).move_to(P(cx2, -1.0))
         t_q = T("vài nguyên tử!", 20, VIOLET, bold=True).move_to(P(cx2, -1.7))
 
-        # panel 3: power
+        # panel 3: economics
         cx3 = cxs[2]
-        ax = Axes(x_range=[0, 1.1, 0.5], y_range=[0, 1.3, 0.5], x_length=2.4, y_length=1.5,
-                  axis_config={"color": TEXT_MUTED, "stroke_width": 2, "include_ticks": False}
-                  ).move_to(P(cx3, -0.15))
-        curve = ax.plot(lambda v: v * v, x_range=[0.05, 1.05], color=CORAL, stroke_width=4)
-        tx = T("V", 14, TEXT_MUTED).next_to(ax.x_axis.get_end(), DOWN, buff=0.05)
-        ty = T("P", 14, TEXT_MUTED).next_to(ax.y_axis.get_end(), LEFT, buff=0.05)
-        mv = dot(AMBER, 0.1).move_to(ax.c2p(1.0, 1.0))
-        flame = VGroup(
-            Polygon(P(0, 0), P(0.28, 0.25), P(0.18, 0.6), P(0, 0.95), P(-0.2, 0.5), P(-0.28, 0.25),
-                    color=CORAL, fill_color=CORAL, fill_opacity=0.95, stroke_width=0),
-            Polygon(P(0, 0), P(0.14, 0.2), P(0, 0.5), P(-0.14, 0.2),
-                    color=AMBER, fill_color=AMBER, fill_opacity=1, stroke_width=0))
-        flame.move_to(P(cx3, 1.55), aligned_edge=DOWN).shift(UP * 0.0)
-        flame_pt = flame.get_bottom()
-        formula = T("P ~ f × V²", 24, AMBER, mono=True, bold=True).move_to(P(cx3, -1.35))
-        warn = T("V quá thấp: 0 và 1 lẫn", 15, CORAL, maxw=3.7).move_to(P(cx3, -1.95))
+        big = Rectangle(width=1.2, height=2.3, color=CORAL, fill_color=CORAL, fill_opacity=0.6,
+                        stroke_width=2).move_to(P(cx3 - 0.95, -0.15))
+        bigt = T("$$$$", 20, TEXT_MAIN, mono=True, bold=True).move_to(big)
+        bigl = T("1 CPU nhanh hơn", 13, CORAL, maxw=1.6).move_to(P(cx3 - 0.95, -1.5))
+        smalls = VGroup(*[Rectangle(width=0.36, height=0.75, color=AMBER, fill_color=AMBER, fill_opacity=0.6,
+                                    stroke_width=2).move_to(P(cx3 + 0.3 + 0.44 * i, -0.15 - 1.15 + 0.375))
+                          for i in range(4)])
+        smallt = T("$", 22, TEXT_MAIN, mono=True, bold=True).move_to(P(cx3 + 0.96, -0.2))
+        smalll = T("nhiều CPU vừa", 13, AMBER, maxw=1.8).move_to(P(cx3 + 1.1, -1.5))
+        warn = T("rẻ hơn mà nhanh bằng", 16, EMERALD, maxw=3.7).move_to(P(cx3, -2.0))
 
         steps = [
             ([FadeIn(hdr), FadeIn(pans), FadeIn(titles)], 1.0),
@@ -201,11 +197,8 @@ class Scene01Foundations(Scene):
             ([FadeIn(s_a)], 1.2),
             ([ReplacementTransform(s_a, s_b), FadeIn(t_a)], 1.8),
             ([ReplacementTransform(s_b, s_c), FadeIn(t_q)], 1.8),
-            ([Create(ax), FadeIn(tx), FadeIn(ty), Create(curve), FadeIn(flame), FadeIn(formula)], 2.0),
-            ([mv.animate.move_to(ax.c2p(0.5, 0.25)) if False else FadeIn(mv)], 0.4),
-            ([MoveAlongPath(mv, ax.plot(lambda v: v * v, x_range=[1.0, 0.45]).reverse_points()
-                            if False else Line(ax.c2p(1.0, 1.0), ax.c2p(0.5, 0.25))),
-              flame.animate.scale(0.35, about_point=flame_pt)], 2.2),
+            ([GrowFromEdge(big, DOWN), FadeIn(bigt), FadeIn(bigl)], 1.6),
+            ([LaggedStart(*[GrowFromEdge(s_, DOWN) for s_ in smalls], lag_ratio=0.2), FadeIn(smallt), FadeIn(smalll)], 2.0),
             ([FadeIn(warn)], 1.0),
         ]
         play_voiced(self, "01_02", steps)
@@ -362,7 +355,7 @@ class Scene01Foundations(Scene):
 
     # ------------------------------------------------------------ 01_05
     def s05(self):
-        hdr = make_header("Thước đo hiệu năng: ví dụ số", "Ch. 1 & 7", EMERALD)
+        hdr = make_header("Speedup quan sát & overhead", "Chương 1", EMERALD)
         sc, x0 = 0.045, -5.3
         ser = rect_at(x0, 2.0, 120 * sc, 0.5, CYAN, 0.55)
         ser_t = T("Ts = 120 s", 18, TEXT_MAIN, bold=True).move_to(ser)
@@ -375,17 +368,13 @@ class Scene01Foundations(Scene):
         par_l = T("8 CPU", 14, TEXT_MUTED).move_to(P(x0 - 0.45, 0.0))
         tp_line = DashedLine(P(x0 + 20 * sc, 2.3), P(x0 + 20 * sc, -1.2), color=AMBER, stroke_width=2)
         tp_t = T("Tp = 20 s", 16, AMBER, bold=True).move_to(P(x0 + 20 * sc + 0.12, 1.45), aligned_edge=LEFT)
-        cost = T("Chi phí = 8 × 20 = 160", 20, TEXT_MAIN, maxw=3.6).move_to(P(-3.4, -1.75))
-        # right: metrics
+        ideal = T("lý tưởng: 120 / 8 = 15 s", 18, TEXT_MAIN, maxw=3.6).move_to(P(-3.4, -1.75))
         rx = 1.1
-        r1 = T("S = 120 / 20 = 6×", 26, EMERALD, bold=True, maxw=3.2).move_to(P(rx, 2.0), aligned_edge=LEFT)
+        r1 = T("S = Ts / Tp = 6×", 26, EMERALD, bold=True, maxw=3.4).move_to(P(rx, 2.0), aligned_edge=LEFT)
         cells = VGroup(*[Square(0.22, color=EMERALD, stroke_width=2, fill_opacity=0) for _ in range(8)]
                        ).arrange(RIGHT, buff=0.1).move_to(P(rx + 1.2, 1.35))
-        r2 = T("E = 6 / 8 = 75%", 26, AMBER, bold=True, maxw=3.2).move_to(P(rx, 0.3), aligned_edge=LEFT)
-        ring_bg = Circle(0.4, color=BORDER_DIM, stroke_width=6).move_to(P(5.6, 0.3))
-        ring = Arc(radius=0.4, start_angle=PI / 2, angle=-1.5 * PI, color=AMBER, stroke_width=6,
-                   arc_center=P(5.6, 0.3))
-        r3 = T("Overhead = 160 − 120 = 40 s", 22, CORAL, bold=True, maxw=5.2).move_to(P(rx, -1.2), aligned_edge=LEFT)
+        r2 = T("lý tưởng: 8×", 26, AMBER, bold=True, maxw=3.2).move_to(P(rx, 0.3), aligned_edge=LEFT)
+        r3 = T("overhead 5 s: khởi tạo · đồng bộ · truyền", 18, CORAL, bold=True, maxw=5.4).move_to(P(rx, -1.2), aligned_edge=LEFT)
         steps = [
             ([FadeIn(hdr)], 0.4),
             ([GrowFromEdge(ser, LEFT), FadeIn(ser_t), FadeIn(ser_l)], 2.0),
@@ -394,8 +383,7 @@ class Scene01Foundations(Scene):
             ([FadeIn(r1)], 1.0),
             ([FadeIn(cells)], 0.8),
             ([LaggedStart(*[c.animate.set_fill(EMERALD, opacity=0.9) for c in cells[:6]], lag_ratio=0.3)], 2.2),
-            ([FadeIn(r2), FadeIn(ring_bg), Create(ring)], 2.6),
-            ([FadeIn(cost)], 1.2),
+            ([FadeIn(r2), FadeIn(ideal)], 2.0),
             ([FadeIn(r3), Indicate(ovh, color=CORAL, scale_factor=1.15)], 2.4),
         ]
         play_voiced(self, "01_05", steps)
@@ -543,98 +531,400 @@ class Scene01Foundations(Scene):
         play_voiced(self, "01_11", steps)
         clear_stage(self)
 
-    # ------------------------------------------------------------ 01_08
-    def s08(self):
-        hdr = make_header("Đường găng trong DAG tác vụ", "Chương 7", CYAN)
-        pos = {"A": (-4.8, 0.9), "B": (-2.0, 1.7), "C": (-2.0, 0.1), "D": (0.8, 1.7), "E": (0.8, 0.1), "F": (3.6, 0.9)}
-        tm = {"A": 3, "B": 2, "C": 6, "D": 4, "E": 1, "F": 2}
-        crit = ["A", "C", "E", "F"]
-        nodes = {k: lbox(f"{k} ({tm[k]})", 1.3, 0.6, CYAN, 17, mono=True).move_to(P(*pos[k])) for k in pos}
-        E = [("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")]
-        ed = {}
-        for a, b in E:
-            ed[(a, b)] = Arrow(nodes[a].get_right(), nodes[b].get_left(), buff=0.06, color=TEXT_MUTED, stroke_width=3,
-                               tip_length=0.15, max_tip_length_to_length_ratio=0.3)
-        dag = VGroup(*nodes.values())
-        path1 = poly(pos["A"], pos["B"], pos["D"], pos["F"])
-        path2 = poly(pos["A"], pos["C"], pos["E"], pos["F"])
-        d1 = dot(CYAN, 0.1).move_to(P(*pos["A"]))
-        d2 = dot(CORAL, 0.1).move_to(P(*pos["A"]))
-        n11 = T("ABDF = 11", 18, CYAN, bold=True).move_to(P(5.3, 1.7))
-        n12 = T("ACEF = 12", 18, CORAL, bold=True).move_to(P(5.3, 0.1))
-        formula = T("Đường găng = 3 + 6 + 1 + 2 = 12", 22, CORAL, bold=True, maxw=7).move_to(P(0, -0.85))
-        # gantt
-        gx, gs = -3.0, 0.5
-        gl = [T("CPU 1", 14, TEXT_MUTED).move_to(P(gx - 0.5, -1.75)), T("CPU 2", 14, TEXT_MUTED).move_to(P(gx - 0.5, -2.45))]
-        tasks = [("A", 0, 3, 0), ("C", 3, 9, 0), ("E", 9, 10, 0), ("F", 10, 12, 0), ("B", 3, 5, 1), ("D", 5, 9, 1)]
-        gb = {}
-        for k, s_, e_, r in tasks:
-            col = CORAL if k in crit else CYAN
-            y = -1.75 - 0.7 * r
-            g = VGroup(rect_at(gx + s_ * gs, y, (e_ - s_) * gs, 0.5, col, 0.55), T(k, 15, TEXT_MAIN, bold=True))
-            g[1].move_to(g[0]); gb[k] = g
-        end = DashedLine(P(gx + 12 * gs, -1.35), P(gx + 12 * gs, -2.85), color=AMBER, stroke_width=2)
-        endt = T("12", 16, AMBER, bold=True).move_to(P(gx + 12 * gs, -3.05))
+    # ------------------------------------------------------------ 01_14 (new)
+    def s14(self):
+        hdr = make_header("Thuật ngữ nền tảng", "Chương 1", CYAN)
+        cxs = [-4.4, 0.0, 4.4]
+        pans = VGroup(*[panel(c, 0.0, 4.1, 4.8) for c in cxs])
+        titles = VGroup(*[T(s, 21, col, bold=True).move_to(P(c, 2.05)) for s, col, c in
+                          zip(["von Neumann", "Granularity", "Đồng bộ"], [CYAN, AMBER, CORAL], cxs)])
+        # von Neumann
+        c = cxs[0]
+        mem = lbox("RAM: lệnh + dữ liệu", 3.3, 0.7, CYAN, 14, mono=False).move_to(P(c, 1.1))
+        cpu = lbox("CPU", 1.6, 0.6, CYAN, 16).move_to(P(c, -0.6))
+        a_dn = arr((c - 0.5, 0.72), (c - 0.5, -0.27), AMBER)
+        a_up = arr((c + 0.5, -0.27), (c + 0.5, 0.72), EMERALD)
+        vn = T("lấy lệnh, chạy tuần tự", 15, TEXT_MAIN, maxw=3.7).move_to(P(c, -1.6))
+        d_f = dot(AMBER, 0.1).move_to(P(c - 0.5, 0.72))
+        # granularity
+        c = cxs[1]
+
+        def gran(y, nblk, wc, wm):
+            g = VGroup()
+            x = c - 1.6
+            for _ in range(nblk):
+                g.add(rect_at(x, y, wc, 0.4, CYAN, 0.6))
+                x += wc
+                g.add(rect_at(x, y, wm, 0.4, CORAL, 0.95))
+                x += wm
+            return g
+        coarse = gran(0.95, 2, 1.4, 0.2)
+        fine = gran(-0.3, 8, 0.25, 0.15)
+        cl = T("thô: tính nhiều, truyền ít", 14, TEXT_MAIN, maxw=3.6).move_to(P(c, 1.5))
+        fl = T("mịn: tính ít, truyền nhiều", 14, TEXT_MAIN, maxw=3.6).move_to(P(c, 0.25))
+        leg = VGroup(rect_at(0, 0, 0.3, 0.2, CYAN, 0.6), T("tính", 13, CYAN),
+                     rect_at(0, 0, 0.3, 0.2, CORAL, 0.95), T("truyền", 13, CORAL)
+                     ).arrange(RIGHT, buff=0.12).move_to(P(c, -0.95))
+        gcap = T("tỷ lệ tính / truyền", 15, AMBER, bold=True).move_to(P(c, -1.7))
+        # sync
+        c = cxs[2]
+        bxp = c - 1.7
+        lens = [1.0, 2.0, 2.9]
+        ys = [1.05, 0.3, -0.45]
+        tasks = [rect_at(bxp, y, l, 0.4, CORAL if False else CYAN, 0.6) for y, l in zip(ys, lens)]
+        waits = [rect_at(bxp + l, y, 2.9 - l, 0.4, CORAL, 0.5) for y, l in zip(ys, lens)]
+        barrier = DashedLine(P(bxp + 2.9, 1.4), P(bxp + 2.9, -0.85), color=AMBER, stroke_width=3)
+        sy = T("nhanh phải chờ chậm", 15, CORAL, maxw=3.7).move_to(P(c, -1.3))
+        mp = T("massively parallel: ~6 chữ số CPU", 14, VIOLET, maxw=3.7).move_to(P(c, -1.9))
         steps = [
-            ([FadeIn(hdr), LaggedStart(*[FadeIn(n) for n in dag], lag_ratio=0.15)], 1.8),
-            ([Create(e) for e in ed.values()], 1.4),
-            ([FadeIn(d1), MoveAlongPath(d1, path1)], 2.2),
-            ([FadeOut(d1)], 0.2),
-            ([FadeIn(n11)], 0.8),
-            ([FadeIn(d2), MoveAlongPath(d2, path2)], 2.4),
-            ([FadeOut(d2)], 0.2),
-            ([FadeIn(n12), *[ed[e].animate.set_color(CORAL) for e in [("A", "C"), ("C", "E"), ("E", "F")]],
-              *[nodes[k][0].animate.set_stroke(CORAL, width=4) for k in crit]], 1.4),
-            ([FadeIn(formula)], 1.4),
-            ([FadeIn(VGroup(*gl))], 0.6),
-            ([FadeIn(gb[k], shift=RIGHT * 0.1) for k in ("A", "C", "E", "F")], 2.4),
-            ([FadeIn(gb[k], shift=RIGHT * 0.1) for k in ("B", "D")], 1.4),
-            ([Create(end), FadeIn(endt)], 1.0),
+            ([FadeIn(hdr), FadeIn(pans), FadeIn(titles)], 1.0),
+            ([FadeIn(mem), FadeIn(cpu), FadeIn(a_dn), FadeIn(a_up), FadeIn(d_f)], 1.4),
+            ([MoveAlongPath(d_f, Line(P(cxs[0] - 0.5, 0.72), P(cxs[0] - 0.5, -0.27))), FadeIn(vn)], 1.6),
+            ([FadeIn(cl), LaggedStart(*[GrowFromEdge(r, LEFT) for r in coarse], lag_ratio=0.3)], 1.8),
+            ([FadeIn(fl), LaggedStart(*[GrowFromEdge(r, LEFT) for r in fine], lag_ratio=0.05)], 1.8),
+            ([FadeIn(leg), FadeIn(gcap)], 1.0),
+            ([AnimationGroup(*[GrowFromEdge(t, LEFT, run_time=l / 2.9 * 2.0, rate_func=linear)
+                               for t, l in zip(tasks, lens)])], 2.2),
+            ([Create(barrier), *[FadeIn(w) for w in waits]], 1.4),
+            ([FadeIn(sy)], 1.0),
+            ([FadeIn(mp)], 1.2),
         ]
-        play_voiced(self, "01_08", steps)
+        play_voiced(self, "01_14", steps)
         clear_stage(self)
 
-    # ------------------------------------------------------------ 01_12 (new)
-    def s12(self):
-        hdr = make_header("Phụ thuộc vòng lặp & thăm dò", "Chương 7", EMERALD)
-        xs = [-2.5 + i for i in range(6)]
-
-        def row(y, code, col):
-            c = T(code, 18, TEXT_MAIN, mono=True).move_to(P(-6.4, y), aligned_edge=LEFT)
-            cl = VGroup(*[VGroup(bx(0.7, 0.55, col, sw=2), T(str(i), 14, TEXT_MUTED, mono=True)).move_to(P(x, y))
-                          for i, x in enumerate(xs)])
-            for g in cl:
-                g[1].move_to(g[0])
-            return c, cl
-        c1, cl1 = row(1.9, "a[i] = a[i-1] + 1", CORAL)
-        c2, cl2 = row(0.6, "b[i] = c[i] * 2", EMERALD)
-        ar = VGroup(*[arr((xs[i] + 0.37, 1.9), (xs[i + 1] - 0.37, 1.9), CORAL, 3, 0.1) for i in range(5)])
-        tg1 = T("tuần tự", 22, CORAL, bold=True).move_to(P(5.2, 1.9))
-        tg2 = T("song song", 22, EMERALD, bold=True).move_to(P(5.2, 0.6))
-        sep = Line(P(-6.4, -0.15), P(6.4, -0.15), color=BORDER_DIM, stroke_width=1.5)
-        # tree
-        root = bx(0.6, 0.45, VIOLET).move_to(P(-0.5, -0.8))
-        lx = [-3.5, -1.5, 0.5, 2.5]
-        leaves = VGroup(*[VGroup(bx(0.7, 0.5, VIOLET if i != 2 else AMBER, sw=2), T(str(i + 1), 14, TEXT_MAIN)).move_to(P(x, -2.35))
-                          for i, x in enumerate(lx)])
-        for g in leaves:
+    # ------------------------------------------------------------ 01_15 (new)
+    def s15(self):
+        hdr = make_header("Bốn mô hình lập trình song song", "Chương 2", AMBER)
+        cxs = [-4.95, -1.65, 1.65, 4.95]
+        cols = [CYAN, AMBER, EMERALD, VIOLET]
+        pans = VGroup(*[panel(c, -0.15, 3.15, 4.7) for c in cxs])
+        names = ["Shared memory", "Threads", "Message passing", "Data parallel"]
+        subs = ["khóa / semaphore", "POSIX · OpenMP", "send ↔ recv · MPI", "cùng phép toán"]
+        titles = VGroup(*[T(n, 17, col, bold=True, maxw=2.9).move_to(P(c, 1.85)) for n, col, c in zip(names, cols, cxs)])
+        stl = VGroup(*[T(s, 13, TEXT_MUTED, maxw=2.9).move_to(P(c, 1.5)) for s, c in zip(subs, cxs)])
+        # 1 shared memory
+        c = cxs[0]
+        tk = VGroup(*[VGroup(Circle(0.22, color=CYAN, fill_color=PANEL_BG, fill_opacity=1, stroke_width=2.5),
+                             T("T" + str(i + 1), 12)).move_to(P(c + x, 0.7)) for i, x in enumerate((-0.9, 0, 0.9))])
+        for g in tk:
             g[1].move_to(g[0])
-        tl = VGroup(*[Line(root.get_bottom(), g.get_top(), color=TEXT_MUTED, stroke_width=2) for g in leaves])
-        star = T("★", 30, AMBER, bold=True).move_to(leaves[2].get_center() + DOWN * 0.55)
-        tl_l = T("thăm dò", 18, VIOLET, bold=True).move_to(P(-5.6, -1.6))
-        tl_r = T("tìm sớm: siêu tuyến tính", 15, AMBER, maxw=3.2).move_to(P(5.0, -1.6))
-        sdots = [dot(AMBER, 0.09).move_to(root.get_bottom()) for _ in lx]
+        mem = lbox("địa chỉ chung", 2.5, 0.55, CYAN, 13, mono=False).move_to(P(c, -0.6))
+        sm_a = VGroup(*[arr((c + x, 0.45), (c + x, -0.3), CYAN) for x in (-0.9, 0, 0.9)])
+        sm_t = T("không cần gửi dữ liệu", 13, TEXT_MAIN, maxw=2.9).move_to(P(c, -1.35))
+        sm_d = [dot(AMBER, 0.07).move_to(P(c + x, 0.45)) for x in (-0.9, 0, 0.9)]
+        # 2 threads
+        c = cxs[1]
+        mainb = lbox("a.out", 1.3, 0.45, AMBER, 13).move_to(P(c, 0.9))
+        ths = VGroup(*[lbox("luồng", 0.8, 0.4, AMBER, 11, mono=False).move_to(P(c + x, -0.1)) for x in (-0.95, 0, 0.95)])
+        fl = VGroup(*[Line(mainb.get_bottom(), t_.get_top(), color=AMBER, stroke_width=2) for t_ in ths])
+        gm = lbox("bộ nhớ chung", 2.7, 0.45, AMBER, 12, mono=False).move_to(P(c, -0.95))
+        tl = VGroup(*[Line(t_.get_bottom(), P(t_.get_center()[0], -0.72), color=TEXT_MUTED, stroke_width=2) for t_ in ths])
+        th_t = T("tạo luồng từ a.out", 13, TEXT_MAIN, maxw=2.9).move_to(P(c, -1.55))
+        # 3 message passing
+        c = cxs[2]
+        n1 = VGroup(bx(1.1, 1.5, EMERALD, sw=2, fo=0.0), T("RAM", 12)).move_to(P(c - 0.85, 0.2))
+        n2 = VGroup(bx(1.1, 1.5, EMERALD, sw=2, fo=0.0), T("RAM", 12)).move_to(P(c + 0.85, 0.2))
+        for g in (n1, n2):
+            g[1].move_to(g[0].get_center() + DOWN * 0.45)
+        sm = arr((c - 0.85, 0.45), (c + 0.85, 0.45), AMBER)
+        stx = T("send", 13, AMBER).move_to(P(c - 0.85, 0.75))
+        rtx = T("recv", 13, EMERALD).move_to(P(c + 0.85, 0.75))
+        mp_t = T("send phải có recv", 13, TEXT_MAIN, maxw=2.9).move_to(P(c, -1.1))
+        mp_d = dot(AMBER, 0.09).move_to(P(c - 0.85, 0.45))
+        # 4 data parallel
+        c = cxs[3]
+        vals = [1, 2, 3, 4, 5, 6]
+        arrc = VGroup(*[make_grid_box(str(v), w=0.42, h=0.5, color=VIOLET, font_size=14).move_to(P(c - 1.05 + 0.42 * i + (0.12 if i > 2 else -0.12), 0.5))
+                        for i, v in enumerate(vals)])
+        newc = VGroup(*[make_grid_box(str(v + 4), w=0.42, h=0.5, color=VIOLET, font_size=14).move_to(arrc[i]) for i, v in enumerate(vals)])
+        ch1 = T("tác vụ 1", 12, TEXT_MUTED).move_to(P(c - 0.55, -0.1))
+        ch2 = T("tác vụ 2", 12, TEXT_MUTED).move_to(P(c + 0.55, -0.1))
+        dp_t = T("mỗi phần: cộng 4", 13, TEXT_MAIN, maxw=2.9).move_to(P(c, -0.85))
+        ban = T("không có mô hình tốt nhất", 20, CORAL, bold=True).move_to(P(0, -3.0))
         steps = [
-            ([FadeIn(hdr), FadeIn(c1), FadeIn(cl1), FadeIn(tg1)], 1.6),
-            ([Succession(*[AnimationGroup(cl1[i][0].animate.set_fill(CORAL, opacity=0.6),
-                                          *( [Create(ar[i - 1])] if i > 0 else [])) for i in range(6)])], 4.5),
-            ([FadeIn(c2), FadeIn(cl2), FadeIn(tg2)], 1.4),
-            ([*[g[0].animate.set_fill(EMERALD, opacity=0.6) for g in cl2]], 1.6),
-            ([Create(sep), FadeIn(root), Create(tl), FadeIn(leaves), FadeIn(tl_l)], 1.8),
-            ([FadeIn(VGroup(*sdots))], 0.3),
-            ([MoveAlongPath(d, Line(root.get_bottom(), g.get_top())) for d, g in zip(sdots, leaves)], 1.8),
-            ([FadeIn(star), Flash(leaves[2], color=AMBER), FadeIn(tl_r),
-              *[g.animate.set_opacity(0.3) for i, g in enumerate(leaves) if i != 2]], 2.0),
+            ([FadeIn(hdr), FadeIn(pans), FadeIn(titles), FadeIn(stl)], 1.2),
+            ([FadeIn(tk), FadeIn(mem), Create(sm_a), *[FadeIn(d) for d in sm_d]], 1.4),
+            ([AnimationGroup(*[MoveAlongPath(d, Line(P(cxs[0] + x, 0.45), P(cxs[0] + x, -0.3)))
+                               for d, x in zip(sm_d, (-0.9, 0, 0.9))]), FadeIn(sm_t)], 1.6),
+            ([FadeIn(mainb), Create(fl), FadeIn(ths)], 1.4),
+            ([FadeIn(gm), Create(tl), FadeIn(th_t)], 1.4),
+            ([FadeIn(n1), FadeIn(n2), FadeIn(stx), FadeIn(rtx), Create(sm), FadeIn(mp_d)], 1.4),
+            ([MoveAlongPath(mp_d, Line(P(cxs[2] - 0.85, 0.45), P(cxs[2] + 0.85, 0.45))), FadeIn(mp_t)], 1.6),
+            ([FadeIn(arrc), FadeIn(ch1), FadeIn(ch2)], 1.2),
+            ([*[ReplacementTransform(a_, b_) for a_, b_ in zip(arrc, newc)], FadeIn(dp_t)], 1.8),
+            ([FadeIn(ban)], 1.0),
         ]
-        play_voiced(self, "01_12", steps)
+        play_voiced(self, "01_15", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_16 (new)
+    def s16(self):
+        hdr = make_header("SPMD · MPMD · Hybrid", "Chương 2", VIOLET)
+        cxs = [-4.4, 0.0, 4.4]
+        cols = [CYAN, AMBER, EMERALD]
+        pans = VGroup(*[panel(c, -0.15, 4.1, 4.7) for c in cxs])
+        titles = VGroup(*[T(n, 22, col, bold=True).move_to(P(c, 1.95)) for n, col, c in zip(["SPMD", "MPMD", "Hybrid"], cols, cxs)])
+        xs4 = (-1.35, -0.45, 0.45, 1.35)
+        # SPMD
+        c = cxs[0]
+        prog = lbox("1 chương trình", 2.0, 0.5, CYAN, 13, mono=False).move_to(P(c, 1.15))
+        t4 = VGroup(*[lbox("T" + str(i), 0.72, 0.5, CYAN, 13).move_to(P(c + x, 0.0)) for i, x in enumerate(xs4)])
+        sa = VGroup(*[Line(P(c, 0.9), t_.get_top(), color=CYAN, stroke_width=2) for t_ in t4])
+        dd = VGroup(*[lbox("d" + str(i), 0.6, 0.4, TEXT_MUTED, 12).move_to(P(c + x, -0.9)) for i, x in enumerate(xs4)])
+        cap1 = T("dữ liệu riêng, rẽ nhánh theo pid", 13, TEXT_MAIN, maxw=3.8).move_to(P(c, -1.7))
+        # MPMD
+        c = cxs[1]
+        pa = lbox("a.out", 1.2, 0.5, AMBER, 13).move_to(P(c - 0.9, 1.15))
+        pb = lbox("b.out", 1.2, 0.5, CORAL, 13).move_to(P(c + 0.9, 1.15))
+        tb = VGroup(*[lbox("T" + str(i), 0.72, 0.5, AMBER if i < 2 else CORAL, 13).move_to(P(c + x, 0.0)) for i, x in enumerate(xs4)])
+        ma = VGroup(*[Line((pa if i < 2 else pb).get_bottom(), t_.get_top(), color=AMBER if i < 2 else CORAL, stroke_width=2) for i, t_ in enumerate(tb)])
+        cap2 = T("nhiều file thực thi", 13, TEXT_MAIN, maxw=3.8).move_to(P(c, -1.7))
+        # Hybrid
+        c = cxs[2]
+        nodes = VGroup()
+        for x in (-0.95, 0.95):
+            nodes.add(bx(1.5, 1.6, EMERALD, sw=2, fo=0.0).move_to(P(c + x, 0.45)))
+            for dx in (-0.3, 0.3):
+                for dy in (0.35, 0.85):
+                    nodes.add(lbox("", 0.4, 0.35, EMERALD, 10).move_to(P(c + x + dx, dy)))
+            nodes.add(T("OpenMP", 12, EMERALD).move_to(P(c + x, -0.1)))
+        link = DashedLine(P(c - 0.2, 0.45), P(c + 0.2, 0.45), color=VIOLET, stroke_width=4)
+        ml = T("MPI", 15, VIOLET, bold=True).move_to(P(c, 1.55))
+        cap3 = T("MPI giữa nút + OpenMP trong nút", 13, TEXT_MAIN, maxw=3.8).move_to(P(c, -1.7))
+        d1 = dot(AMBER, 0.09).move_to(P(c - 0.75, 0.45))
+        steps = [
+            ([FadeIn(hdr), FadeIn(pans), FadeIn(titles)], 1.0),
+            ([FadeIn(prog), Create(sa), FadeIn(t4)], 1.4),
+            ([FadeIn(dd), FadeIn(cap1)], 1.4),
+            ([Indicate(t4[0], color=AMBER), Indicate(t4[2], color=AMBER)], 1.4),
+            ([FadeIn(pa), FadeIn(pb), Create(ma), FadeIn(tb)], 1.6),
+            ([FadeIn(cap2)], 1.0),
+            ([FadeIn(nodes), FadeIn(ml)], 1.4),
+            ([Create(link), FadeIn(d1)], 0.6),
+            ([MoveAlongPath(d1, Line(P(cxs[2] - 0.75, 0.45), P(cxs[2] + 0.75, 0.45))), FadeIn(cap3)], 1.8),
+        ]
+        play_voiced(self, "01_16", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_17 (new)
+    def s17(self):
+        hdr = make_header("Ghi chung trên CRCW & Boolean AND", "Chương 2", EMERALD)
+        cl, cr = -3.3, 3.3
+        pl = panel(cl, -0.1, 6.2, 5.3)
+        pr = panel(cr, -0.1, 6.2, 5.3)
+        tl = T("Ba CPU cùng ghi: 3, 3, 7", 20, EMERALD, bold=True, maxw=5.6).move_to(P(cl, 2.15))
+        tr_ = T("Boolean AND", 20, CYAN, bold=True).move_to(P(cr, 2.15))
+        pxs = (-1.8, 0, 1.8)
+        vv = ("3", "3", "7")
+        procs = VGroup(*[VGroup(Circle(0.27, color=EMERALD, fill_color=PANEL_BG, fill_opacity=1, stroke_width=2.5),
+                                T("P" + str(i + 1), 13)).move_to(P(cl + x, 1.1)) for i, x in enumerate(pxs)])
+        for g in procs:
+            g[1].move_to(g[0])
+        vals = VGroup(*[T(v, 18, AMBER, mono=True, bold=True).move_to(P(cl + x, 0.55)) for v, x in zip(vv, pxs)])
+        cell = bx(1.5, 0.7, EMERALD, sw=2.5).move_to(P(cl, -0.7))
+        arrs = VGroup(*[arr((cl + x, 0.35), (cl + x * 0.25, -0.35), AMBER) for x in pxs])
+        rules = [("Priority: P1 thắng", "3", CYAN), ("Equality: 3 ≠ 7, không ghi", "–", CORAL),
+                 ("Arbitrary: chọn bất kỳ", "3 hoặc 7", AMBER), ("Combining: tổng", "13", EMERALD)]
+
+        def rule_grp(name, res, col):
+            return VGroup(T(name, 17, col, bold=True, maxw=5.6).move_to(P(cl, -1.55)),
+                          T(res, 22, col, mono=True, bold=True, maxw=1.3).move_to(cell))
+        rgs = [rule_grp(*r) for r in rules]
+        # right: AND
+        flags = [True, True, False, True, False, True]
+        fx = [cr - 2.0 + 0.8 * i for i in range(6)]
+        cells = VGroup(*[VGroup(bx(0.65, 0.55, EMERALD if f else CORAL, sw=2),
+                                T("T" if f else "F", 16, EMERALD if f else CORAL, mono=True, bold=True)).move_to(P(x, 1.1))
+                         for f, x in zip(flags, fx)])
+        for g in cells:
+            g[1].move_to(g[0])
+        res = VGroup(bx(1.8, 0.7, CYAN, sw=2.5), T("KQ = TRUE", 15, EMERALD, mono=True, bold=True)).move_to(P(cr, -0.7))
+        res[1].move_to(res[0])
+        fres = VGroup(bx(1.8, 0.7, CORAL, sw=2.5), T("KQ = FALSE", 15, CORAL, mono=True, bold=True)).move_to(P(cr, -0.7))
+        fres[1].move_to(fres[0])
+        wa = VGroup(*[arr((fx[i], 0.8), (cr + (fx[i] - cr) * 0.3, -0.3), CORAL) for i, f in enumerate(flags) if not f])
+        o1 = T("CRCW: O(1)", 22, EMERALD, mono=True, bold=True).move_to(P(cr, -1.6))
+        o2 = T("EREW: O(log n)", 22, AMBER, mono=True, bold=True).move_to(P(cr, -2.2))
+        steps = [
+            ([FadeIn(hdr), FadeIn(pl), FadeIn(pr), FadeIn(tl), FadeIn(tr_)], 1.0),
+            ([FadeIn(procs), FadeIn(vals), FadeIn(cell), Create(arrs)], 1.6),
+            ([FadeIn(rgs[0])], 1.6),
+            ([FadeOut(rgs[0]), FadeIn(rgs[1])], 1.6),
+            ([FadeOut(rgs[1]), FadeIn(rgs[2])], 1.6),
+            ([FadeOut(rgs[2]), FadeIn(rgs[3])], 1.6),
+            ([FadeIn(cells), FadeIn(res)], 1.4),
+            ([Create(wa)], 1.0),
+            ([FadeOut(res), FadeIn(fres)], 1.0),
+            ([FadeIn(o1)], 1.0),
+            ([FadeIn(o2)], 1.2),
+        ]
+        play_voiced(self, "01_17", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_18 (new)
+    def s18(self):
+        hdr = make_header("Broadcast: nhân đôi trên EREW", "Chương 2", AMBER)
+        xs = [-4.9 + 1.4 * i for i in range(8)]
+        y = 0.4
+        procs = VGroup(*[VGroup(Circle(0.3, color=TEXT_MUTED, fill_color=PANEL_BG, fill_opacity=1, stroke_width=2.5),
+                                T("P" + str(i + 1), 14)).move_to(P(x, y)) for i, x in enumerate(xs)])
+        for g in procs:
+            g[1].move_to(g[0])
+        xb = [T("x", 18, AMBER, mono=True, bold=True).next_to(g, DOWN, buff=0.12) for g in procs]
+        hold = [[0], [0, 1], [0, 1, 2, 3], list(range(8))]
+        lbls = ["bước 1: 1 CPU có x", "bước 2: 2 CPU", "bước 3: 4 CPU", "bước 4: 8 CPU"]
+        lab = [T(s, 22, AMBER, bold=True).move_to(P(0, -1.6)) for s in lbls]
+        naive = T("tuần tự: O(n)", 18, CORAL, mono=True).move_to(P(-4.4, 2.3))
+        fast = T("nhân đôi: O(log n)", 18, EMERALD, mono=True, bold=True).move_to(P(4.2, 2.3))
+
+        def arcs(src_dst):
+            g = VGroup()
+            for s_, d_ in src_dst:
+                g.add(CurvedArrow(procs[s_].get_top() + UP * 0.02, procs[d_].get_top() + UP * 0.02, angle=-1.0,
+                                  color=AMBER, stroke_width=3, tip_length=0.15))
+            return g
+        a2 = arcs([(0, 1)])
+        a3 = arcs([(0, 2), (1, 3)])
+        a4 = arcs([(0, 4), (1, 5), (2, 6), (3, 7)])
+        take = T("n CPU = log₂ n vòng nhân đôi", 24, AMBER, bold=True).move_to(P(0, -2.6))
+        steps = [
+            ([FadeIn(hdr), FadeIn(procs), FadeIn(naive)], 1.4),
+            ([procs[0][0].animate.set_color(AMBER), FadeIn(xb[0]), FadeIn(lab[0])], 1.6),
+            ([Create(a2), procs[1][0].animate.set_color(AMBER), FadeIn(xb[1]), FadeOut(lab[0]), FadeIn(lab[1])], 1.8),
+            ([FadeOut(a2), Create(a3), *[procs[i][0].animate.set_color(AMBER) for i in (2, 3)], *[FadeIn(xb[i]) for i in (2, 3)],
+              FadeOut(lab[1]), FadeIn(lab[2])], 1.8),
+            ([FadeOut(a3), Create(a4), *[procs[i][0].animate.set_color(AMBER) for i in range(4, 8)], *[FadeIn(xb[i]) for i in range(4, 8)],
+              FadeOut(lab[2]), FadeIn(lab[3])], 2.0),
+            ([FadeIn(fast), FadeIn(take)], 1.6),
+        ]
+        play_voiced(self, "01_18", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_19 (new)
+    def s19(self):
+        hdr = make_header("Pointer jumping: xếp hạng danh sách", "Chương 2", CYAN)
+        n = 8
+        xs = [-4.5 + 1.3 * i for i in range(n)]
+        ny, ry = -0.2, -1.1
+        nodes = VGroup(*[lbox(str(i + 1), 0.8, 0.55, CYAN, 16).move_to(P(x, ny)) for i, x in enumerate(xs)])
+        rl = T("RANK", 14, TEXT_MUTED).move_to(P(-6.0, ry))
+        nl = T("NEXT", 14, TEXT_MUTED).move_to(P(-6.0, 0.6))
+        # states
+        rank = [1] * n
+        nxt = [i + 1 if i + 1 < n else -1 for i in range(n)]
+        states = [(list(rank), list(nxt))]
+        for _ in range(3):
+            r2 = list(rank)
+            n2 = list(nxt)
+            for i in range(n):
+                if nxt[i] != -1:
+                    r2[i] = rank[i] + rank[nxt[i]]
+                    n2[i] = nxt[nxt[i]]
+            rank, nxt = r2, n2
+            states.append((list(rank), list(nxt)))
+
+        def rank_row(rk):
+            return VGroup(*[T(str(v), 22, AMBER, mono=True, bold=True).move_to(P(xs[i], ry)) for i, v in enumerate(rk)])
+
+        def arc_row(nx):
+            g = VGroup()
+            for i, j in enumerate(nx):
+                if j != -1:
+                    g.add(CurvedArrow(nodes[i].get_top() + UP * 0.02, nodes[j].get_top() + UP * 0.02, angle=-1.1,
+                                      color=EMERALD, stroke_width=3, tip_length=0.14))
+            return g
+        rrows = [rank_row(s[0]) for s in states]
+        arows = [arc_row(s[1]) for s in states]
+        vong = [T("khởi tạo: RANK = 1, nhảy 1", 20, TEXT_MAIN, bold=True),
+                T("vòng 1: nhảy 2", 20, EMERALD, bold=True), T("vòng 2: nhảy 4", 20, EMERALD, bold=True),
+                T("vòng 3: xong, RANK = khoảng cách tới cuối", 20, AMBER, bold=True, maxw=9)]
+        for v in vong:
+            v.move_to(P(0, -2.2))
+        rule = T("RANK[i] += RANK[NEXT[i]];  NEXT[i] = NEXT[NEXT[i]]", 16, TEXT_MUTED, mono=True, maxw=10).move_to(P(0, 2.3))
+        take = T("O(log n) · EREW · O(n) CPU  (tuần tự: O(n))", 18, EMERALD, mono=True, bold=True, maxw=10).move_to(P(0, -3.0))
+        steps = [
+            ([FadeIn(hdr), FadeIn(nodes), FadeIn(rl), FadeIn(nl), FadeIn(rrows[0]), FadeIn(arows[0]), FadeIn(vong[0])], 1.6),
+            ([FadeIn(rule)], 1.4),
+        ]
+        for k in (1, 2, 3):
+            steps.append(([FadeOut(arows[k - 1]), FadeOut(rrows[k - 1]), FadeIn(arows[k]), FadeIn(rrows[k]),
+                           FadeOut(vong[k - 1]), FadeIn(vong[k])], 2.0))
+        steps.append(([FadeIn(take)], 1.4))
+        play_voiced(self, "01_19", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_20 (new)
+    def s20(self):
+        hdr = make_header("Partitioning: trộn hai mảng đã sắp", "Chương 2", EMERALD)
+        c1, c2 = -3.4, 0.6
+        cols = [CYAN, AMBER]
+        A = [[1, 4], [7, 9]]
+        B = [[2, 3], [5, 8]]
+        C = [[1, 2, 3, 4], [5, 7, 8, 9]]
+        pans = VGroup(*[panel(c, -0.2, 3.6, 5.0) for c in (c1, c2)])
+        lab = VGroup(*[T(s, 20, TEXT_MUTED, bold=True).move_to(P(-5.9, y)) for s, y in (("A", 1.5), ("B", 0.4), ("C", -1.3))])
+        pt = VGroup(*[T("P" + str(i + 1), 18, col, bold=True).move_to(P(c, 2.0)) for i, (c, col) in enumerate(zip((c1, c2), cols))])
+
+        def row(cx, vals, y, col, step=0.8):
+            k = len(vals)
+            return VGroup(*[make_grid_box(str(v), w=0.65, h=0.55, color=col, font_size=18).move_to(P(cx + (i - (k - 1) / 2) * step, y))
+                            for i, v in enumerate(vals)])
+        arA = [row(c, A[g], 1.5, cols[g]) for g, c in enumerate((c1, c2))]
+        arB = [row(c, B[g], 0.4, cols[g]) for g, c in enumerate((c1, c2))]
+        arC = [row(c, C[g], -1.3, cols[g]) for g, c in enumerate((c1, c2))]
+        r1 = T("r = n / log n nhóm", 18, TEXT_MAIN, maxw=3.4).move_to(P(4.6, 1.8))
+        r2 = T("mỗi P: tìm nhị phân j[i]", 16, CYAN, maxw=3.4).move_to(P(4.6, 0.8))
+        r3 = T("rồi trộn NA[i] với NB[i]", 16, EMERALD, maxw=3.4).move_to(P(4.6, 0.1))
+        r4 = T("mỗi bước O(log n)", 18, AMBER, bold=True, maxw=3.4).move_to(P(4.6, -0.9))
+        r5 = T("tuần tự (3 con trỏ): O(n)", 16, CORAL, maxw=3.4).move_to(P(4.6, -1.8))
+        steps = [
+            ([FadeIn(hdr), FadeIn(pans), FadeIn(lab), FadeIn(pt)], 1.0),
+            ([FadeIn(arA[0]), FadeIn(arA[1]), FadeIn(r1)], 1.8),
+            ([FadeIn(arB[0]), FadeIn(arB[1]), FadeIn(r2)], 2.0),
+            ([FadeIn(r3), LaggedStart(*[FadeIn(b, shift=DOWN * 0.15) for b in arC[0]], lag_ratio=0.2)], 2.2),
+            ([LaggedStart(*[FadeIn(b, shift=DOWN * 0.15) for b in arC[1]], lag_ratio=0.2)], 2.0),
+            ([FadeIn(r4)], 1.2),
+            ([FadeIn(r5)], 1.2),
+        ]
+        play_voiced(self, "01_20", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_21 (new)
+    def s21(self):
+        hdr = make_header("Ký hiệu O, Ω, Θ & bảng kết quả", "Chương 2", AMBER)
+        cl, cr = -3.4, 3.4
+        pl = panel(cl, -0.1, 6.0, 5.3)
+        pr = panel(cr, -0.1, 6.0, 5.3)
+        ax = Axes(x_range=[0, 10, 2], y_range=[0, 12, 4], x_length=4.8, y_length=2.7,
+                  axis_config={"color": TEXT_MUTED, "stroke_width": 2, "include_ticks": False}).move_to(P(cl, 0.45))
+        Tn = ax.plot(lambda n: n + 0.6 * np.sin(1.5 * n), x_range=[0.3, 10], color=AMBER, stroke_width=4)
+        up = ax.plot(lambda n: 1.5 * n, x_range=[0.3, 8], color=CORAL, stroke_width=2.5)
+        lo = ax.plot(lambda n: 0.5 * n, x_range=[0.3, 10], color=CYAN, stroke_width=2.5)
+        mline = DashedLine(ax.c2p(2, 0), ax.c2p(2, 12), color=TEXT_MUTED, stroke_width=1.5)
+        mt = T("m", 14, TEXT_MUTED).next_to(ax.c2p(2, 0), DOWN, buff=0.08)
+        tT = T("T(n)", 14, AMBER, bold=True).next_to(ax.c2p(10, 10.6), UP, buff=0.05).shift(LEFT * 0.3)
+        tU = T("c₂·f(n)", 14, CORAL).next_to(ax.c2p(8, 12), RIGHT, buff=0.05)
+        tL = T("c₁·f(n)", 14, CYAN).next_to(ax.c2p(10, 5), DOWN, buff=0.08).shift(LEFT * 0.4)
+        chips = VGroup(T("O: chặn trên", 15, CORAL, bold=True), T("Ω: chặn dưới", 15, CYAN, bold=True),
+                       T("Θ: cả hai", 15, AMBER, bold=True)).arrange(RIGHT, buff=0.35).move_to(P(cl, -2.0))
+        note = T("thường quan tâm O(n)", 14, TEXT_MUTED).move_to(P(cl, -2.5))
+        ttl = T("Kết quả cần nhớ", 18, EMERALD, bold=True).move_to(P(cr, 2.15))
+        rows = [("cộng 2 vector", "O(1)", "EREW"), ("tổng n số", "O(log n)", "EREW"), ("Boolean AND", "O(1)", "CRCW"),
+                ("broadcast", "O(log n)", "EREW"), ("xếp hạng DS", "O(log n)", "EREW"), ("trộn 2 mảng", "O(log n)", "chia nhóm")]
+        trs = []
+        for i, (nm, cx_, mc) in enumerate(rows):
+            y = 1.5 - 0.72 * i
+            trs.append(VGroup(T(nm, 17, TEXT_MAIN, maxw=2.2).move_to(P(cr - 2.9, y), aligned_edge=LEFT),
+                              T(cx_, 18, AMBER, mono=True, bold=True).move_to(P(cr + 0.5, y)),
+                              T(mc, 14, VIOLET, maxw=1.5).move_to(P(cr + 2.3, y))))
+        steps = [
+            ([FadeIn(hdr), FadeIn(pl), FadeIn(pr)], 1.0),
+            ([Create(ax), Create(Tn), FadeIn(tT)], 2.0),
+            ([Create(lo), FadeIn(tL), Create(up), FadeIn(tU), Create(mline), FadeIn(mt)], 2.4),
+            ([FadeIn(chips), FadeIn(note)], 2.0),
+            ([FadeIn(ttl)], 0.6),
+        ]
+        for r in trs:
+            steps.append(([FadeIn(r, shift=LEFT * 0.15)], 1.0))
+        play_voiced(self, "01_21", steps)
         clear_stage(self)

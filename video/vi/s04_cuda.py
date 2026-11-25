@@ -34,10 +34,8 @@ class Scene04CUDA(Scene):
         self.s02()
         self.s03()
         self.s04()
-        self.s05()
         self.s06()
         self.s07()
-        self.s08()
         self.s09()
         self.s10()
         self.s11()
@@ -49,8 +47,13 @@ class Scene04CUDA(Scene):
         self.s17()
         self.s18()
         self.s19()
-        self.s20()
         self.s21()
+        self.s22()
+        self.s23()
+        self.s24()
+        self.s25()
+        self.s26()
+        self.s27()
         play_module_drills(self, "M4", "CUDA")
 
     # 04_01 CPU vs GPU
@@ -195,45 +198,6 @@ class Scene04CUDA(Scene):
         ])
         clear_stage(self)
 
-    # 04_05 warp lockstep + divergence
-    def s05(self):
-        hdr = make_header("Warp: 32 lane chạy cùng lệnh", "lockstep", AMBER)
-        lanes = VGroup(*[C(0.33, 0.55, CYAN, 0.35, 1.2) for _ in range(32)]).arrange(RIGHT, buff=0.04).move_to(UP * 0.5)
-        n0 = T("lane 0", 14, TEXT_MUTED).next_to(lanes[0], DOWN, buff=0.12).align_to(lanes, LEFT)
-        n31 = T("lane 31", 14, TEXT_MUTED).next_to(lanes[31], DOWN, buff=0.12).align_to(lanes, RIGHT)
-        ins1 = VGroup(R(4.0, 0.6, AMBER), T("y = a×x + y", 20, TEXT_MAIN, BOLD, MONO))
-        ins1[1].move_to(ins1[0]); ins1.move_to(UP * 1.9)
-        ins2 = VGroup(R(6.2, 0.6, AMBER), T("if (lane < 16) A  else  B", 20, TEXT_MAIN, BOLD, MONO))
-        ins2[1].move_to(ins2[0]); ins2.move_to(UP * 1.9)
-        grey = "#3A4048"
-        left = lanes[:16]; right = lanes[16:]
-        # timelines
-        u = 2.8
-        r1 = C(u, 0.4, EMERALD, 0.85).move_to(LEFT * 4.5 + RIGHT * u / 2 + DOWN * 1.5)
-        r1.align_to(LEFT * 4.5, LEFT)
-        r2a = C(u, 0.4, CYAN, 0.85); r2b = C(u, 0.4, VIOLET, 0.85)
-        r2 = VGroup(r2a, r2b).arrange(RIGHT, buff=0).move_to(DOWN * 2.3).align_to(r1, LEFT)
-        L1 = T("Không rẽ nhánh", 15, TEXT_MAIN).move_to(LEFT * 5.6 + DOWN * 1.5)
-        L2 = T("Rẽ nhánh", 15, TEXT_MAIN).move_to(LEFT * 5.6 + DOWN * 2.3)
-        for L in (L1, L2):
-            L.align_to(LEFT * 6.5, LEFT)
-        t1 = T("0,62 ms", 16, EMERALD, BOLD, MONO).next_to(r1, RIGHT, buff=0.2)
-        t2 = T("1,23 ms  (×2)", 16, CORAL, BOLD, MONO).next_to(r2, RIGHT, buff=0.2)
-        ta = T("A", 16, "#0D1117", BOLD).move_to(r2a); tb = T("B", 16, "#0D1117", BOLD).move_to(r2b)
-        play_voiced(self, "04_05", [
-            ([FadeIn(hdr), FadeIn(lanes), FadeIn(n0), FadeIn(n31)], 1.0),
-            ([FadeIn(ins1)], 0.6),
-            ([lanes.animate.set_fill(CYAN, 0.95)], 0.6),
-            ([Indicate(lanes, color=AMBER, scale_factor=1.05)], 1.0),
-            ([FadeIn(L1), GrowFromEdge(r1, LEFT), FadeIn(t1)], 1.0),
-            ([ReplacementTransform(ins1, ins2), lanes.animate.set_fill(CYAN, 0.35)], 0.8),
-            ([left.animate.set_fill(CYAN, 0.95), right.animate.set_fill(grey, 0.9).set_stroke(grey)], 1.2),
-            ([FadeIn(L2), GrowFromEdge(r2a, LEFT), FadeIn(ta)], 0.8),
-            ([left.animate.set_fill(grey, 0.9).set_stroke(grey), right.animate.set_fill(VIOLET, 0.95).set_stroke(VIOLET)], 1.2),
-            ([GrowFromEdge(r2b, LEFT), FadeIn(tb), FadeIn(t2)], 0.8),
-        ])
-        clear_stage(self)
-
     # 04_06 latency hiding timeline
     def s06(self):
         hdr = make_header("Che độ trễ: chuyển warp", "400–800 chu kỳ", EMERALD)
@@ -310,65 +274,19 @@ class Scene04CUDA(Scene):
         ])
         clear_stage(self)
 
-    # 04_08 coalescing
-    def s08(self):
-        hdr = make_header("Truy cập liên tục vs bước nhảy", "coalescing", AMBER)
-        pitch = 0.18
-        mem = VGroup(*[C(0.16, 0.45, BORDER_DIM, 0.6, 0.8, stroke=TEXT_MUTED) for _ in range(64)]).arrange(RIGHT, buff=0.02)
-        mem.move_to(UP * 0.2)
-        lines = VGroup(*[SurroundingRectangle(mem[8 * i:8 * i + 8], color=TEXT_MUTED, buff=0.02, stroke_width=1.5) for i in range(8)])
-        ml = T("bộ nhớ: 8 dòng × 8 từ", 15, TEXT_MUTED).next_to(mem, DOWN, buff=0.45)
-
-        def lane_group(targets):
-            g = VGroup(); a = VGroup()
-            for k_, c in enumerate(targets):
-                top = mem[c].get_top() + UP * 1.5 + RIGHT * 0
-                d = Dot(mem[c].get_top() + UP * 1.5, radius=0.1, color=CYAN)
-                g.add(d)
-                a.add(Arrow(d.get_bottom(), mem[c].get_top(), buff=0.03, color=CYAN, stroke_width=2, tip_length=0.12))
-            return g, a
-        # contiguous: lanes spread over x
-        cont_targets = list(range(8))
-        lanes1 = VGroup(*[Dot(radius=0.1, color=CYAN).move_to(LEFT * 5.2 + RIGHT * 0.45 * i + UP * 1.7) for i in range(8)])
-        lanes1.move_to(mem[3].get_center() + RIGHT * 0.09 + UP * 1.7)
-        ar1 = VGroup(*[Arrow(lanes1[i].get_bottom(), mem[i].get_top(), buff=0.03, color=CYAN, stroke_width=2, tip_length=0.1) for i in range(8)])
-        lanes2 = VGroup(*[Dot(mem[8 * i].get_top() + UP * 1.7, radius=0.1, color=CORAL) for i in range(8)])
-        ar2 = VGroup(*[Arrow(lanes2[i].get_bottom(), mem[8 * i].get_top(), buff=0.03, color=CORAL, stroke_width=2, tip_length=0.1) for i in range(8)])
-        hl1 = SurroundingRectangle(mem[0:8], color=EMERALD, buff=0.04, stroke_width=4)
-        hl2 = VGroup(*[SurroundingRectangle(mem[8 * i:8 * i + 8], color=CORAL, buff=0.04, stroke_width=3) for i in range(8)])
-        c1 = T("liên tục: 1 giao dịch", 24, EMERALD, BOLD).move_to(DOWN * 1.7)
-        c2 = T("bước nhảy 8: 8 giao dịch", 24, CORAL, BOLD).move_to(DOWN * 1.7)
-        wl = T("8 lane của warp", 15, TEXT_MUTED).next_to(lanes1, UP, buff=0.15)
-        chart = make_bar_chart([447, 100], ["Liên tục", "Bước nhảy"], [EMERALD, CORAL], 480, width=5.0, height=2.8, unit="GB/s")
-        chart.move_to(DOWN * 0.1)
-        k = key("Băng thông: 447 → 100 GB/s")
-        play_voiced(self, "04_08", [
-            ([FadeIn(hdr), FadeIn(mem), FadeIn(lines), FadeIn(ml)], 1.0),
-            ([FadeIn(lanes1), FadeIn(wl)], 0.8),
-            ([LaggedStart(*[GrowArrow(a) for a in ar1], lag_ratio=0.1), Create(hl1)], 1.5),
-            ([FadeIn(c1)], 1.2),
-            ([FadeOut(lanes1), FadeOut(ar1), FadeOut(hl1), FadeOut(wl), ReplacementTransform(c1, c2)], 0.8),
-            ([FadeIn(lanes2), LaggedStart(*[GrowArrow(a) for a in ar2], lag_ratio=0.1), FadeIn(hl2)], 2.0),
-            ([FadeOut(lanes2), FadeOut(ar2), FadeOut(hl2), FadeOut(mem), FadeOut(lines), FadeOut(ml), FadeOut(c2)], 0.6),
-            ([FadeIn(chart), FadeIn(k)], 1.5),
-        ])
-        clear_stage(self)
-
-    # 04_09 pinned & unified memory
+    # 04_09 pinned memory
     def s09(self):
-        hdr = make_header("Pinned và Unified Memory", "256 MiB", CYAN)
-        c1 = make_bar_chart([21.3, 26.4], ["Thường", "Pinned"], [CYAN, EMERALD], 30, width=4.6, height=2.8, unit="GB/s")
-        c1.move_to(LEFT * 3.3 + DOWN * 0.3)
-        t1 = T("D→H: cudaMallocHost", 18, CYAN, BOLD).move_to(LEFT * 3.3 + UP * 1.9)
-        c2 = make_bar_chart([27.5, 11.7, 1.23], ["Page fault", "Prefetch", "Trên GPU"], [CORAL, AMBER, EMERALD], 30, width=5.4, height=2.8, unit="ms")
-        c2.move_to(RIGHT * 3.4 + DOWN * 0.3)
-        t2 = T("Unified: cudaMallocManaged", 18, EMERALD, BOLD).move_to(RIGHT * 3.4 + UP * 1.9)
-        k = key("Dữ liệu càng gần GPU, càng nhanh", EMERALD)
+        hdr = make_header("Bộ nhớ khóa trang (pinned)", "256 MiB", CYAN)
+        t1 = T("cudaMallocHost: khóa trang trong RAM", 20, CYAN, BOLD, maxw=11).move_to(UP * 2.3)
+        ch = make_bar_chart([26.0, 26.8, 21.3, 26.4], ["Thường\nH→D", "Pinned\nH→D", "Thường\nD→H", "Pinned\nD→H"],
+                            [CYAN, EMERALD, CYAN, EMERALD], 30, width=8.0, height=3.0, unit="GB/s")
+        ch.move_to(DOWN * 0.7)
+        hl = SurroundingRectangle(VGroup(ch[2][2], ch[2][3]), color=AMBER, buff=0.1, stroke_width=3)
+        k = key("D→H: 21,3 → 26,4 GB/s · pinned là điều kiện chép không chặn", EMERALD)
         play_voiced(self, "04_09", [
             ([FadeIn(hdr), FadeIn(t1)], 0.8),
-            ([FadeIn(c1[0]), FadeIn(c1[1]), LaggedStart(*[FadeIn(b, shift=UP * 0.2) for b in c1[2]], lag_ratio=0.5)], 2.0),
-            ([FadeIn(t2)], 0.8),
-            ([FadeIn(c2[0]), FadeIn(c2[1]), LaggedStart(*[FadeIn(b, shift=UP * 0.2) for b in c2[2]], lag_ratio=0.5)], 3.0),
+            ([FadeIn(ch[0]), FadeIn(ch[1]), LaggedStart(*[FadeIn(b, shift=UP * 0.2) for b in ch[2]], lag_ratio=0.5)], 3.0),
+            ([Create(hl)], 1.0),
             ([FadeIn(k)], 0.8),
         ])
         clear_stage(self)
@@ -395,7 +313,7 @@ class Scene04CUDA(Scene):
         kern = seg(1.0, 7, gy, EMERALD, "kernel chạy")
         early = DashedLine(RIGHT * (x0 + 2.3 * u) + UP * (cy - 0.3), RIGHT * (x0 + 2.3 * u) + UP * (gy + 0.3), color=CORAL, stroke_width=3)
         early_t = T("✗ đọc sớm: sai!", 15, CORAL, BOLD).next_to(early, RIGHT, buff=0.12)
-        k = key("<<<1, 2000>>> sai: tối đa 1024 thread / block", CORAL)
+        k = key("Thiếu cudaDeviceSynchronize: CPU đọc dữ liệu chưa xong", CORAL)
         tmark = Arrow(LEFT * 5.5 + DOWN * 1.1, RIGHT * 5.5 + DOWN * 1.1, color=TEXT_MUTED, buff=0, stroke_width=2)
         tl = T("thời gian", 14, TEXT_MUTED).next_to(tmark, DOWN, buff=0.08).align_to(tmark, RIGHT)
         play_voiced(self, "04_10", [
@@ -738,28 +656,6 @@ class Scene04CUDA(Scene):
         ])
         clear_stage(self)
 
-    # 04_20 optimization appendix
-    def s20(self):
-        hdr = make_header("Phụ lục tối ưu: mức tăng tốc", "RTX 4070", AMBER)
-        vals = [36, 151, 14.9, 7.7, 8.9]
-        labs = ["block_size\n1 → 92 block", "reduction\natomic → tốt nhất", "pi\nfloat vs double",
-                "matmul\ncuBLAS vs OpenBLAS", "Jacobi 2D\nGPU vs MPI"]
-        cols = [CYAN, EMERALD, VIOLET, AMBER, CORAL]
-        chart = make_bar_chart(vals, labs, cols, 165, width=11.6, height=3.4, unit="×")
-        chart.move_to(DOWN * 0.45)
-        dets = ["12 → 433 GB/s", "88,9 → 0,59 ms", "58 → 3,9 ms", "2930 → 22.591 GFLOP/s", "1,021 → 0,115 s"]
-        dt = [T(s, 22, cols[i], BOLD, MONO).move_to(UP * 2.3) for i, s in enumerate(dets)]
-        steps = [([FadeIn(hdr), FadeIn(chart[0]), FadeIn(chart[1])], 1.0)]
-        for i in range(5):
-            a = [FadeIn(chart[2][i], shift=UP * 0.2)]
-            if i == 0:
-                a.append(FadeIn(dt[0]))
-            else:
-                a.append(ReplacementTransform(dt[i - 1], dt[i]))
-            steps.append((a, 1.8))
-        play_voiced(self, "04_20", steps)
-        clear_stage(self)
-
     # 04_21 nvcc compilation
     def s21(self):
         hdr = make_header("Biên dịch bằng nvcc", "-arch chọn thế hệ GPU", VIOLET)
@@ -788,5 +684,170 @@ class Scene04CUDA(Scene):
             ([GrowArrow(a4), GrowArrow(a5), FadeIn(e)], 1.6),
             ([FadeIn(cmd)], 1.0),
             ([FadeIn(p1), FadeIn(p2)], 1.4),
+        ])
+        clear_stage(self)
+
+    # 04_22 Fermi SM threads
+    def s22(self):
+        hdr = make_header("Số luồng đồng thời: Fermi và RTX 4070", "1536 thread / SM", EMERALD)
+        sms = VGroup(*[R(1.0, 0.7, EMERALD, op=0.25, r=0.06) for _ in range(16)]).arrange_in_grid(rows=2, cols=8, buff=0.12)
+        sms.move_to(UP * 1.9)
+        labs = VGroup(*[T("1536", 14, EMERALD, BOLD, MONO).move_to(s) for s in sms])
+        f1 = T("Fermi: 16 SM × 1536 = 24.576", 24, AMBER, BOLD, MONO, maxw=10).move_to(UP * 0.5)
+        f2 = T("RTX 4070: 46 SM × 1536 = 70.656", 24, CYAN, BOLD, MONO, maxw=10).move_to(UP * 0.5)
+        ch = make_bar_chart([24576, 70656], ["Fermi (16 SM)", "RTX 4070 (46 SM)"], [AMBER, CYAN], 80000, width=5.6, height=1.7, unit="")
+        ch.move_to(DOWN * 1.55)
+        k = key("Fermi mỗi SM: 32 lõi CUDA · 32K thanh ghi", EMERALD)
+        play_voiced(self, "04_22", [
+            ([FadeIn(hdr), FadeIn(sms)], 1.0),
+            ([LaggedStart(*[FadeIn(l) for l in labs], lag_ratio=0.08)], 1.8),
+            ([FadeIn(f1)], 1.0),
+            ([FadeIn(k)], 0.8),
+            ([FadeOut(labs), sms[:].animate.set_fill(CYAN, 0.35), ReplacementTransform(f1, f2)], 1.2),
+            ([FadeIn(ch[0]), FadeIn(ch[1]), LaggedStart(*[FadeIn(b, shift=UP * 0.2) for b in ch[2]], lag_ratio=0.5)], 2.0),
+        ])
+        clear_stage(self)
+
+    # 04_23 separate address spaces
+    def s23(self):
+        hdr = make_header("Hai không gian địa chỉ riêng", "host ≠ device", CORAL)
+        host = R(4.6, 3.0, CYAN, r=0.12).move_to(LEFT * 3.6 + UP * 0.2)
+        dev = R(4.6, 3.0, EMERALD, r=0.12).move_to(RIGHT * 3.6 + UP * 0.2)
+        ht = T("RAM host", 18, CYAN, BOLD).move_to(host.get_top() + DOWN * 0.3)
+        dt = T("VRAM device", 18, EMERALD, BOLD).move_to(dev.get_top() + DOWN * 0.3)
+        px = VGroup(R(1.6, 0.6, CYAN, r=0.08), T("x (host)", 16, CYAN, BOLD, MONO)); px[1].move_to(px[0]); px.move_to(host.get_center() + DOWN * 0.1)
+        pd = VGroup(R(1.8, 0.6, EMERALD, r=0.08), T("d_x (device)", 16, EMERALD, BOLD, MONO, maxw=1.6)); pd[1].move_to(pd[0]); pd.move_to(dev.get_center() + DOWN * 0.1)
+        bad = Arrow(px.get_right(), pd.get_left(), color=CORAL, buff=0.1, stroke_width=4)
+        bt = T("host đọc d_x → lỗi", 17, CORAL, BOLD).next_to(bad, UP, buff=0.15)
+        cross = VGroup(Line(UL, DR, color=CORAL, stroke_width=6), Line(UR, DL, color=CORAL, stroke_width=6)).scale(0.3).move_to(bad)
+        cp = Arrow(LEFT * 3.6 + DOWN * 1.6, RIGHT * 3.6 + DOWN * 1.6, color=AMBER, buff=0.0, stroke_width=4)
+        cpl = T("cudaMemcpy mới đúng", 17, AMBER, BOLD).next_to(cp, DOWN, buff=0.12)
+        k1 = key("Nhìn giá trị con trỏ không biết host hay device", CORAL)
+        k2 = key("Từ CUDA 4.0: UVA, một không gian địa chỉ ảo", EMERALD)
+        play_voiced(self, "04_23", [
+            ([FadeIn(hdr), FadeIn(host), FadeIn(dev), FadeIn(ht), FadeIn(dt)], 1.0),
+            ([FadeIn(px), FadeIn(pd)], 1.0),
+            ([GrowArrow(bad), FadeIn(bt)], 1.2),
+            ([Create(cross), FadeIn(k1)], 1.0),
+            ([FadeOut(bad), FadeOut(cross), FadeOut(bt), GrowArrow(cp), FadeIn(cpl)], 1.4),
+            ([ReplacementTransform(k1, k2)], 1.2),
+        ])
+        clear_stage(self)
+
+    # 04_24 2D launch 4x8 with 4x2 block
+    def s24(self):
+        hdr = make_header("Lưới 2D: mảng 4 hàng × 8 cột", "block 4 × 2", VIOLET)
+        cell = 0.62
+        cols_ = [CYAN, EMERALD, AMBER, VIOLET]
+        cells = VGroup(); vals = VGroup()
+        for r_ in range(4):
+            for c_ in range(8):
+                blk = (r_ // 2) * 2 + (c_ // 4)
+                sq = C(cell, cell, cols_[blk], 0.35, 1.2, stroke=cols_[blk]).move_to(RIGHT * (-4.6 + cell * c_ + 0.0) + UP * (1.6 - cell * r_))
+                cells.add(sq)
+                vals.add(T("0", 16, TEXT_MAIN, BOLD, MONO).move_to(sq))
+        cells.move_to(RIGHT * 3.0 + UP * 0.5); vals.move_to(RIGHT * 3.0 + UP * 0.5)
+        panel = R(4.2, 2.9, AMBER, r=0.12).move_to(LEFT * 4.2 + UP * 0.5)
+        l1 = T("block(4, 2)", 20, TEXT_MAIN, BOLD, MONO).move_to(panel.get_center() + UP * 0.8)
+        l2 = T("grid(8/4, 4/2)", 20, CYAN, BOLD, MONO).move_to(panel.get_center())
+        l3 = T("= grid(2, 2): 4 block", 20, EMERALD, BOLD, MONO, maxw=3.8).move_to(panel.get_center() + DOWN * 0.8)
+        k1 = key("idx = iy × dimx + ix · a[idx] += 1", AMBER)
+        l4 = T("block 8 × 1 → grid(1, 4)", 20, CORAL, BOLD, MONO, maxw=3.8).move_to(panel.get_center() + DOWN * 0.8)
+        new1 = VGroup(*[T("1", 16, TEXT_MAIN, BOLD, MONO).move_to(v) for v in vals])
+        new2 = VGroup(*[T("2", 16, TEXT_MAIN, BOLD, MONO).move_to(v) for v in vals])
+        strips = [CYAN, EMERALD, AMBER, VIOLET]
+        play_voiced(self, "04_24", [
+            ([FadeIn(hdr), FadeIn(cells), FadeIn(vals)], 1.2),
+            ([FadeIn(panel), FadeIn(l1)], 0.8),
+            ([FadeIn(l2)], 0.8),
+            ([FadeIn(l3)], 0.8),
+            ([Transform(vals, new1)], 1.2),
+            ([Transform(vals, new2), FadeIn(k1)], 1.2),
+            ([FadeOut(l3), FadeIn(l4)] +
+             [cells[r_ * 8 + c_].animate.set_fill(strips[r_], 0.35).set_stroke(strips[r_]) for r_ in range(4) for c_ in range(8)], 1.6),
+        ])
+        clear_stage(self)
+
+    # 04_25 four factors
+    def s25(self):
+        hdr = make_header("Bốn yếu tố: CPU và GPU", "song song · xung · băng thông · độ trễ", AMBER)
+        rows = [("Song song", "ít lõi, nhiều lệnh/chu kỳ", "hàng nghìn lõi"),
+                ("Xung nhịp", "cao, chạm trần công suất", "thấp hơn CPU"),
+                ("Băng thông", "DDR: 67 GB/s", "GDDR/HBM2: 438 GB/s"),
+                ("Độ trễ", "cache, out-of-order", "đa luồng mức cao")]
+        ch = T("CPU", 20, CYAN, BOLD).move_to(RIGHT * -0.4 + UP * 2.4)
+        gh = T("GPU", 20, EMERALD, BOLD).move_to(RIGHT * 3.9 + UP * 2.4)
+        grp = []
+        for i, (a, b, c_) in enumerate(rows):
+            y = 1.4 - 1.0 * i
+            la = T(a, 18, AMBER, BOLD, maxw=2.3).move_to(LEFT * 4.6 + UP * y)
+            rb = VGroup(R(3.8, 0.7, CYAN, r=0.08), T(b, 15, TEXT_MAIN, maxw=3.6)); rb[1].move_to(rb[0]); rb.move_to(RIGHT * -0.4 + UP * y)
+            rc = VGroup(R(3.8, 0.7, EMERALD, r=0.08), T(c_, 15, TEXT_MAIN, maxw=3.6)); rc[1].move_to(rc[0]); rc.move_to(RIGHT * 3.9 + UP * y)
+            grp.append(VGroup(la, rb, rc))
+        k = key("438 ÷ 67 ≈ 6,5 lần băng thông", EMERALD)
+        hl = SurroundingRectangle(grp[2], color=AMBER, buff=0.1, stroke_width=3)
+        play_voiced(self, "04_25", [
+            ([FadeIn(hdr), FadeIn(ch), FadeIn(gh)], 0.8),
+            ([FadeIn(grp[0])], 1.2),
+            ([FadeIn(grp[1])], 1.2),
+            ([FadeIn(grp[2])], 1.2),
+            ([FadeIn(grp[3])], 1.2),
+            ([Create(hl), FadeIn(k)], 1.2),
+        ])
+        clear_stage(self)
+
+    # 04_26 SAXPY host order + trap
+    def s26(self):
+        hdr = make_header("Mã host của SAXPY: thứ tự và bẫy", "n = 1.000.000", CORAL)
+        lines = ["cudaMalloc(&d_x, ...)", "cudaMemcpy(d_x, x, ..., H2D)", "saxpy<<<nblocks, 256>>>(n, 2.0, d_x, d_y)",
+                 "cudaMemcpy(y, d_y, ..., D2H)", "cudaFree(d_x)"]
+        cols_ = [VIOLET, CYAN, AMBER, EMERALD, TEXT_MUTED]
+        bx = VGroup()
+        for i, s in enumerate(lines):
+            b = VGroup(R(6.8, 0.6, cols_[i], r=0.08), T("%d  %s" % (i + 1, s), 16, TEXT_MAIN, BOLD, MONO, maxw=6.5)); b[1].move_to(b[0])
+            bx.add(b)
+        bx.arrange(DOWN, buff=0.18).move_to(LEFT * 3.0 + DOWN * 0.1)
+        w1 = T("nblocks = n / 256 = 3906", 18, CORAL, BOLD, MONO, maxw=5.4)
+        w2 = T("3906 × 256 = 999.936 < n: thiếu 64", 16, CORAL, BOLD, MONO, maxw=5.4)
+        g1 = T("nblocks = (n + 255) / 256 = 3907", 18, EMERALD, BOLD, MONO, maxw=5.4)
+        g2 = T("3907 × 256 ≥ n, thêm if (i < n)", 16, EMERALD, BOLD, MONO, maxw=5.4)
+        side = VGroup(w1, w2).arrange(DOWN, buff=0.3).move_to(RIGHT * 4.0 + UP * 0.7)
+        side2 = VGroup(g1, g2).arrange(DOWN, buff=0.3).move_to(RIGHT * 4.0 + DOWN * 1.1)
+        trap = T("Truyền x thay vì d_x → lỗi", 17, CORAL, BOLD, maxw=5.4).move_to(RIGHT * 4.0 + DOWN * 2.6)
+        arrow = Arrow(bx[2].get_right(), RIGHT * 1.5 + UP * 0.7, color=AMBER, buff=0.1, stroke_width=3)
+        play_voiced(self, "04_26", [
+            ([FadeIn(hdr)], 0.5),
+            ([LaggedStart(*[FadeIn(b) for b in bx], lag_ratio=0.3)], 3.0),
+            ([GrowArrow(arrow), FadeIn(w1), FadeIn(w2)], 1.6),
+            ([FadeIn(g1), FadeIn(g2)], 1.6),
+            ([FadeIn(trap)], 1.0),
+        ])
+        clear_stage(self)
+
+    # 04_27 shared vs global
+    def s27(self):
+        hdr = make_header("Shared và Global: phạm vi, tuổi thọ", "__shared__ · cudaMalloc", VIOLET)
+        rows = [("Khai báo", "__shared__ float s[N]", "cudaMalloc / cudaFree"),
+                ("Phạm vi", "các luồng trong block", "mọi luồng, mọi kernel"),
+                ("Tuổi thọ", "bằng block", "do host quyết định"),
+                ("Kích thước", "~48 KB", "12 GB (RTX 4070)"),
+                ("Độ trễ", "vài chu kỳ", "400–800 chu kỳ")]
+        sh = T("Shared", 20, CYAN, BOLD).move_to(RIGHT * -0.3 + UP * 2.5)
+        gl = T("Global", 20, CORAL, BOLD).move_to(RIGHT * 4.2 + UP * 2.5)
+        grp = []
+        for i, (a, b, c_) in enumerate(rows):
+            y = 1.6 - 0.85 * i
+            la = T(a, 17, AMBER, BOLD, maxw=2.0).move_to(LEFT * 4.8 + UP * y)
+            rb = VGroup(R(4.2, 0.62, CYAN, r=0.08), T(b, 15, TEXT_MAIN, BOLD if i == 0 else NORMAL, MONO if i == 0 else SANS, maxw=4.0)); rb[1].move_to(rb[0]); rb.move_to(RIGHT * -0.3 + UP * y)
+            rc = VGroup(R(4.2, 0.62, CORAL, r=0.08), T(c_, 15, TEXT_MAIN, BOLD if i == 0 else NORMAL, MONO if i == 0 else SANS, maxw=4.0)); rc[1].move_to(rc[0]); rc.move_to(RIGHT * 4.2 + UP * y)
+            grp.append(VGroup(la, rb, rc))
+        k = key("Kết quả cần dùng ở kernel sau phải nằm trong global", AMBER)
+        play_voiced(self, "04_27", [
+            ([FadeIn(hdr), FadeIn(sh), FadeIn(gl)], 0.8),
+            ([FadeIn(grp[0])], 1.0),
+            ([FadeIn(grp[1])], 1.2),
+            ([FadeIn(grp[2])], 1.2),
+            ([FadeIn(grp[3]), FadeIn(grp[4])], 1.6),
+            ([FadeIn(k)], 0.8),
         ])
         clear_stage(self)

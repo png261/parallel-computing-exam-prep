@@ -1,5 +1,6 @@
 from manim import *
 from scene_utils import *
+from scene_utils import play_module_drills
 import heapq
 
 TH = [CYAN, AMBER, EMERALD, VIOLET]
@@ -60,13 +61,11 @@ class Scene02SharedMem(Scene):
 
     def construct(self):
         setup_bg(self)
-        for fn in [self.seg_01, self.seg_02, self.seg_03, self.seg_09, self.seg_04, self.seg_05,
-                   self.seg_06, self.seg_10, self.seg_07, self.seg_11, self.seg_12, self.seg_08,
-                   self.seg_13, self.seg_14, self.seg_15, self.seg_16, self.seg_17, self.seg_18,
-                   self.seg_19, self.seg_20, self.seg_21, self.seg_22, self.seg_23]:
+        for fn in [self.seg_01, self.seg_02, self.seg_03, self.seg_09, self.seg_04, self.seg_05, self.seg_06, self.seg_10, self.seg_07, self.seg_11, self.seg_12, self.seg_16, self.seg_17, self.seg_18, self.seg_19, self.seg_20, self.seg_21, self.seg_22, self.seg_24, self.seg_25, self.seg_26, self.seg_27, self.seg_28, self.seg_29, self.seg_30, self.seg_31]:
             self.cap = None
             fn()
             clear_stage(self)
+        play_module_drills(self, "M2", "C++ threads / OpenMP")
 
     # ------------------------------------------------------------ 02_01
     def seg_01(self):
@@ -501,156 +500,10 @@ class Scene02SharedMem(Scene):
         steps.append((deep + [self.setcap("cutoff: nhánh nhỏ chạy tuần tự", AMBER)], 1.0))
         play_voiced(self, "02_12", steps)
 
-    # ------------------------------------------------------------ 02_08
-    def seg_08(self):
-        hdr = make_header("Java: trạng thái luồng", "Thread.State", AMBER)
-        pos = {
-            "NEW": (-5.2, 1.4), "RUNNABLE": (-1.4, 1.4), "TERMINATED": (4.8, 1.4),
-            "BLOCKED": (-3.6, -1.5), "WAITING": (0.2, -1.5), "TIMED_WAITING": (4.0, -1.5),
-        }
-        cols = {"NEW": CYAN, "RUNNABLE": EMERALD, "TERMINATED": TEXT_MUTED, "BLOCKED": CORAL, "WAITING": AMBER, "TIMED_WAITING": VIOLET}
-        bx = {}
-        for k, (x, y) in pos.items():
-            bx[k] = labeled(k, 2.5, 0.8, cols[k], 18, MONO, bold=True).move_to(RIGHT * x + UP * y)
 
-        def arr(a, b, **kw):
-            return Arrow(bx[a].get_edge_center(kw.get("sa", RIGHT)), bx[b].get_edge_center(kw.get("sb", LEFT)), buff=0.08, color=TEXT_MUTED, stroke_width=3, max_tip_length_to_length_ratio=0.2)
-        a_start = arr("NEW", "RUNNABLE")
-        a_end = arr("RUNNABLE", "TERMINATED")
-        a_b = DoubleArrow(bx["RUNNABLE"].get_bottom() + LEFT * 0.8, bx["BLOCKED"].get_top() + RIGHT * 0.3, buff=0.08, color=CORAL, stroke_width=3, max_tip_length_to_length_ratio=0.2)
-        a_w = DoubleArrow(bx["RUNNABLE"].get_bottom() + RIGHT * 0.1, bx["WAITING"].get_top() + LEFT * 0.3, buff=0.08, color=AMBER, stroke_width=3, max_tip_length_to_length_ratio=0.2)
-        a_t = DoubleArrow(bx["RUNNABLE"].get_bottom() + RIGHT * 0.9, bx["TIMED_WAITING"].get_top() + LEFT * 0.4, buff=0.08, color=VIOLET, stroke_width=3, max_tip_length_to_length_ratio=0.2)
-        l_s = mono("start()", 18, CYAN).next_to(a_start, UP, buff=0.05)
-        l_e = mono("run() xong", 17, TEXT_MUTED).next_to(a_end, UP, buff=0.05)
-        l_b = tx("khóa đang bận", 17, CORAL).next_to(bx["BLOCKED"], DOWN, buff=0.12)
-        l_w = mono("wait() / notify()", 16, AMBER).next_to(bx["WAITING"], DOWN, buff=0.12)
-        l_t = mono("sleep(t)", 17, VIOLET).next_to(bx["TIMED_WAITING"], DOWN, buff=0.12)
-        d = Dot(radius=0.16, color=AMBER).move_to(bx["NEW"].get_corner(UL) + RIGHT * 0.05)
-        d.set_z_index(5)
-        r = bx["RUNNABLE"]
 
-        def at(k, dy=0.65):
-            return bx[k].get_corner(UL) + RIGHT * 0.05
-        steps = [([FadeIn(hdr)], 0.4),
-                 ([FadeIn(VGroup(*bx.values()), lag_ratio=0.1)], 1.2),
-                 ([FadeIn(d)], 0.2),
-                 ([GrowArrow(a_start), FadeIn(l_s), AM(d, lambda _m: _m.move_to(at("RUNNABLE")))], 1.0),
-                 ([Create(a_b), FadeIn(l_b), AM(d, lambda _m: _m.move_to(at("BLOCKED")))], 1.0),
-                 ([AM(d, lambda _m: _m.move_to(at("RUNNABLE")))], 0.7),
-                 ([Create(a_w), FadeIn(l_w), AM(d, lambda _m: _m.move_to(at("WAITING")))], 1.0),
-                 ([AM(d, lambda _m: _m.move_to(at("RUNNABLE")))], 0.7),
-                 ([Create(a_t), FadeIn(l_t), AM(d, lambda _m: _m.move_to(at("TIMED_WAITING")))], 1.0),
-                 ([AM(d, lambda _m: _m.move_to(at("RUNNABLE")))], 0.7),
-                 ([GrowArrow(a_end), FadeIn(l_e), AM(d, lambda _m: _m.move_to(at("TERMINATED")))], 1.0),
-                 ([self.setcap("Luôn gọi start(), không gọi run()", AMBER)], 0.6)]
-        play_voiced(self, "02_08", steps)
 
-    # ------------------------------------------------------------ 02_13
-    def seg_13(self):
-        hdr = make_header("Producer–Consumer (đệm 3 ô)", "wait / notify", EMERALD)
-        P = labeled("Producer", 2.0, 1.0, AMBER, 20, bold=True).move_to(LEFT * 5.2 + UP * 0.5)
-        C = labeled("Consumer", 2.0, 1.0, VIOLET, 20, bold=True).move_to(RIGHT * 5.2 + UP * 0.5)
-        slots = VGroup(*[rbox(1.0, 0.9, BORDER_DIM, op=1.0) for _ in range(3)]).arrange(RIGHT, buff=0.2).move_to(UP * 0.5)
-        mon = rbox(4.2, 1.5, AMBER, fill=DARK, sw=3, op=0.0).move_to(slots)
-        ml = tx("synchronized", 18, AMBER, MONO, True).next_to(mon, UP, buff=0.08)
-        nf = labeled("notFull", 2.0, 0.55, EMERALD, 18, MONO, bold=True).move_to(LEFT * 1.4 + DOWN * 1.2)
-        ne = labeled("notEmpty", 2.0, 0.55, BORDER_DIM, 18, MONO, bold=True).move_to(RIGHT * 1.4 + DOWN * 1.2)
-        items = [tok(str(i + 1), AMBER, 0.6, 0.5, 22) for i in range(4)]
-        wl = mono("wait()", 22, CORAL, bold=True).next_to(P, DOWN, buff=0.15)
-        wl2 = mono("chạy tiếp", 20, EMERALD, bold=True).next_to(P, DOWN, buff=0.15)
-        steps = [([FadeIn(hdr)], 0.4),
-                 ([FadeIn(P), FadeIn(C), FadeIn(slots), FadeIn(mon), FadeIn(ml), FadeIn(nf), FadeIn(ne)], 1.0)]
-        for i in range(3):
-            items[i].move_to(P)
-            steps += [([FadeIn(items[i], scale=0.8)], 0.2), ([AM(items[i], lambda _m: _m.move_to(slots[i]))], 0.7)]
-            if i == 0:
-                steps.append(([AM(ne[0], lambda _m: _m.set_stroke(EMERALD, 3))], 0.2))
-        steps.append(([AM(nf[0], lambda _m: _m.set_stroke(CORAL, 3).set_fill("#2A1215", 1)), AM(P[0], lambda _m: _m.set_stroke(CORAL, 4)), FadeIn(wl),
-                       self.setcap("Đệm đầy: Producer phải wait()", CORAL)], 1.0))
-        steps.append(([AM(items[0], lambda _m: _m.move_to(C.get_left() + LEFT * 0.45))], 0.9))
-        steps.append(([FadeOut(items[0]), AM(nf[0], lambda _m: _m.set_stroke(EMERALD, 3).set_fill(PANEL_BG, 1)), Indicate(nf, color=EMERALD),
-                       self.setcap("Consumer lấy 1 → notify()", EMERALD)], 0.8))
-        items[3].move_to(P)
-        steps.append(([FadeOut(wl), FadeIn(wl2), AM(P[0], lambda _m: _m.set_stroke(AMBER, 2))], 0.5))
-        steps += [([FadeIn(items[3], scale=0.8)], 0.2), ([AM(items[3], lambda _m: _m.move_to(slots[0]))], 0.7)]
-        steps.append(([self.setcap("Luôn kiểm tra điều kiện trong while", AMBER)], 0.6))
-        play_voiced(self, "02_13", steps)
 
-    # ------------------------------------------------------------ 02_14
-    def seg_14(self):
-        hdr = make_header("Semaphore: 2 permit", "Semaphore(2)", CYAN)
-        ths = [labeled(f"T{i}", 0.9, 0.7, TH[i], 20, MONO, bold=True).move_to(LEFT * 5.6 + UP * (1.3 - 0.9 * i)) for i in range(4)]
-        sem = rbox(2.6, 2.2, AMBER).move_to(LEFT * 1.6 + UP * 0.0)
-        sl = tx("Semaphore", 18, AMBER, bold=True).move_to(sem.get_top() + DOWN * 0.3)
-        permits = [Dot(radius=0.22, color=AMBER).move_to(sem.get_center() + RIGHT * (-0.45 + 0.9 * i) + DOWN * 0.1) for i in range(2)]
-        zone = rbox(3.6, 2.6, EMERALD).move_to(RIGHT * 4.2 + UP * 0.0)
-        zl = tx("vùng găng", 18, EMERALD, bold=True).move_to(zone.get_top() + DOWN * 0.3)
-        zs = [RIGHT * 3.4 + DOWN * 0.15, RIGHT * 5.0 + DOWN * 0.15]
-        cnt = [mono("permits: 2", 24, AMBER, bold=True).move_to(DOWN * 1.9 + LEFT * 1.6)]
-        for t_ in ths:
-            t_.set_z_index(3)
-        for p_ in permits:
-            p_.set_z_index(4)
-        r2 = SurroundingRectangle(ths[2], color=CORAL, buff=0.06, stroke_width=4, corner_radius=0.1)
-        r3 = SurroundingRectangle(ths[3], color=CORAL, buff=0.06, stroke_width=4, corner_radius=0.1)
-
-        def setc(n, col=AMBER):
-            nw = mono(f"permits: {n}", 24, col, bold=True).move_to(cnt[0])
-            a = ReplacementTransform(cnt[0], nw)
-            cnt[0] = nw
-            return a
-        steps = [([FadeIn(hdr)], 0.4),
-                 ([*[FadeIn(t) for t in ths], FadeIn(sem), FadeIn(sl), *[FadeIn(p) for p in permits], FadeIn(zone), FadeIn(zl), FadeIn(cnt[0])], 1.0),
-                 ([AM(ths[0], lambda _m: _m.move_to(zs[0])), AM(permits[0], lambda _m: _m.move_to(zs[0] + DOWN * 0.7)), setc(1)], 1.0),
-                 ([AM(ths[1], lambda _m: _m.move_to(zs[1])), AM(permits[1], lambda _m: _m.move_to(zs[1] + DOWN * 0.7)), setc(0, CORAL)], 1.0),
-                 ([Create(r2), Create(r3), self.setcap("T2, T3 phải chờ (acquire bị chặn)", CORAL)], 1.0),
-                 ([AM(permits[0], lambda _m: _m.move_to(sem.get_center() + RIGHT * -0.45 + DOWN * 0.1)), FadeOut(ths[0]), setc(1), self.setcap("T0 xong → release()", EMERALD)], 1.0),
-                 ([FadeOut(r2)], 0.3),
-                 ([AM(ths[2], lambda _m: _m.move_to(zs[0])), AM(permits[0], lambda _m: _m.move_to(zs[0] + DOWN * 0.7)), setc(0, CORAL)], 1.0),
-                 ([self.setcap("Tối đa 2 luồng cùng lúc", AMBER)], 0.6)]
-        play_voiced(self, "02_14", steps)
-
-    # ------------------------------------------------------------ 02_15
-    def seg_15(self):
-        hdr = make_header("Deadlock: vòng chờ", "2 khóa", CORAL)
-        A = labeled("Thread A", 2.0, 0.9, AMBER, 20, bold=True).move_to(LEFT * 4.8 + UP * 0.0)
-        B = labeled("Thread B", 2.0, 0.9, VIOLET, 20, bold=True).move_to(RIGHT * 4.8 + UP * 0.0)
-        L1 = labeled("Khóa 1", 1.8, 0.8, CYAN, 20, bold=True).move_to(UP * 1.5)
-        L2 = labeled("Khóa 2", 1.8, 0.8, EMERALD, 20, bold=True).move_to(DOWN * 1.5)
-        hold1 = Arrow(L1.get_left(), A.get_top() + UP * 0.0, buff=0.08, color=AMBER, stroke_width=5)
-        hold2 = Arrow(L2.get_right(), B.get_bottom(), buff=0.08, color=VIOLET, stroke_width=5)
-        want1 = DashedLine(A.get_bottom(), L2.get_left(), color=CORAL, stroke_width=4).add_tip()
-        want2 = DashedLine(B.get_top(), L1.get_right(), color=CORAL, stroke_width=4).add_tip()
-        hl = tx("giữ", 18, TEXT_MUTED)
-        lbl_h1 = tx("giữ", 18, AMBER, bold=True).move_to((hold1.get_start() + hold1.get_end()) / 2 + UP * 0.35 + LEFT * 0.2)
-        lbl_h2 = tx("giữ", 18, VIOLET, bold=True).move_to((hold2.get_start() + hold2.get_end()) / 2 + DOWN * 0.35 + RIGHT * 0.2)
-        lbl_w1 = tx("chờ", 18, CORAL, bold=True).move_to((want1.get_start() + want1.get_end()) / 2 + DOWN * 0.35 + LEFT * 0.1)
-        lbl_w2 = tx("chờ", 18, CORAL, bold=True).move_to((want2.get_start() + want2.get_end()) / 2 + UP * 0.35 + RIGHT * 0.1)
-        dead = tx("DEADLOCK", 34, CORAL, bold=True).move_to(UP * 0.0)
-        steps = [([FadeIn(hdr)], 0.4),
-                 ([FadeIn(A), FadeIn(B), FadeIn(L1), FadeIn(L2)], 0.9),
-                 ([GrowArrow(hold1), FadeIn(lbl_h1)], 0.8),
-                 ([GrowArrow(hold2), FadeIn(lbl_h2)], 0.8),
-                 ([Create(want1), FadeIn(lbl_w1)], 0.8),
-                 ([Create(want2), FadeIn(lbl_w2)], 0.8),
-                 ([FadeIn(dead, scale=1.4), AM(A[0], lambda _m: _m.set_stroke(CORAL, 5)), AM(B[0], lambda _m: _m.set_stroke(CORAL, 5))], 0.9),
-                 ([self.setcap("A chờ B, B chờ A: không ai nhả khóa", CORAL)], 0.8),
-                 ([FadeOut(want1), FadeOut(want2), FadeOut(lbl_w1), FadeOut(lbl_w2), FadeOut(dead), FadeOut(hold1), FadeOut(hold2),
-                   FadeOut(lbl_h1), FadeOut(lbl_h2), AM(A[0], lambda _m: _m.set_stroke(AMBER, 2)), AM(B[0], lambda _m: _m.set_stroke(VIOLET, 2))], 0.8),
-                 ]
-        # fix: same order
-        o1 = Arrow(A.get_top(), L1.get_left(), buff=0.08, color=EMERALD, stroke_width=4)
-        o2 = Arrow(B.get_top(), L1.get_right(), buff=0.08, color=EMERALD, stroke_width=4)
-        o3 = Arrow(A.get_bottom(), L2.get_left(), buff=0.08, color=EMERALD, stroke_width=4)
-        o4 = Arrow(B.get_bottom(), L2.get_right(), buff=0.08, color=EMERALD, stroke_width=4)
-        n1 = tx("1", 28, EMERALD, bold=True).move_to(UP * 1.5 + LEFT * 2.6 + UP * 0.45)
-        n2 = tx("1", 28, EMERALD, bold=True).move_to(UP * 1.5 + RIGHT * 2.6 + UP * 0.45)
-        n3 = tx("2", 28, EMERALD, bold=True).move_to(DOWN * 1.5 + LEFT * 2.6 + DOWN * 0.45)
-        n4 = tx("2", 28, EMERALD, bold=True).move_to(DOWN * 1.5 + RIGHT * 2.6 + DOWN * 0.45)
-        steps += [([Create(o1), Create(o2), FadeIn(n1), FadeIn(n2)], 0.9), ([Create(o3), Create(o4), FadeIn(n3), FadeIn(n4), self.setcap("Luôn khóa theo cùng một thứ tự", EMERALD)], 1.0)]
-        play_voiced(self, "02_15", steps)
-
-    # ============================================================ 02_16 .. 02_23 (bổ sung từ tài liệu cập nhật)
     # ------------------------------------------------------------ 02_16
     def seg_16(self):
         hdr = make_header("Lambda bắt chỉ số vòng lặp", "[&] vs [&, k]", CORAL)
@@ -884,32 +737,213 @@ class Scene02SharedMem(Scene):
                  ([self.setcap("Đo trước, tối ưu sau", AMBER)], 0.5)]
         play_voiced(self, "02_22", steps)
 
-    # ------------------------------------------------------------ 02_23
-    def seg_23(self):
-        hdr = make_header("ReentrantLock: khóa công bằng", "Java", AMBER)
-        mode = mono("new ReentrantLock()", 24, CORAL, bold=True).move_to(UP * 2.3)
-        mode2 = mono("new ReentrantLock(true)", 24, EMERALD, bold=True).move_to(UP * 2.3)
-        lock = rbox(2.2, 1.4, AMBER).move_to(RIGHT * 4.2 + UP * 0.3)
-        ll = tx("khóa", 17, AMBER, bold=True).move_to(lock.get_top() + DOWN * 0.28)
-        qx = [0.2, -1.4, -3.0]
-        qn = ["A", "B", "C"]
-        q = [labeled(f"{qn[i]}", 1.1, 0.7, TH[i], 22, bold=True).move_to(RIGHT * qx[i] + UP * 0.3) for i in range(3)]
-        ql = tx("hàng chờ (A chờ lâu nhất)", 17, TEXT_MUTED).move_to(LEFT * 1.4 + UP * 1.1)
-        holder = labeled("H", 0.8, 0.55, TEXT_MAIN, 20, bold=True).move_to(lock.get_center() + DOWN * 0.15)
-        newd_pos = RIGHT * 1.9 + DOWN * 1.5
-        newd = labeled("D mới đến", 1.7, 0.6, VIOLET, 18, bold=True).move_to(newd_pos)
-        inlock = lock.get_center() + DOWN * 0.15
-        res1 = tx("D chen ngang: A có thể bị đói", 19, CORAL, bold=True).move_to(LEFT * 1.0 + DOWN * 2.35)
-        res2 = tx("A nhận khóa trước: công bằng", 19, EMERALD, bold=True).move_to(LEFT * 1.0 + DOWN * 2.35)
+    # ------------------------------------------------------------ helpers (map tables)
+    def maptable(self, rows, lcol, rcol, lw=3.6, rw=4.6, y0=2.05, dy=0.68):
+        L, R, A = [], [], []
+        for i, (a, b) in enumerate(rows):
+            y = y0 - dy * i
+            l = labeled(a, lw, 0.52, lcol, 17, MONO, bold=True).move_to(LEFT * 3.7 + UP * y)
+            r = labeled(b, rw, 0.52, rcol, 17, MONO, bold=True).move_to(RIGHT * 2.9 + UP * y)
+            ar = Arrow(l.get_right(), r.get_left(), buff=0.08, color=TEXT_MUTED, stroke_width=3,
+                       max_tip_length_to_length_ratio=0.25)
+            L.append(l)
+            R.append(r)
+            A.append(ar)
+        return L, R, A
+
+    # ------------------------------------------------------------ 02_24
+    def seg_24(self):
+        hdr = make_header("C++20: bốn công cụ đồng bộ", "C++ threads", AMBER)
+        names = [("mutex", "một luồng / đoạn găng", CYAN), ("barrier", "chờ đủ N luồng", AMBER),
+                 ("condition_variable", "chờ điều kiện", EMERALD), ("counting_semaphore", "tối đa k luồng", VIOLET)]
+        rows = VGroup()
+        for i, (a, b, c) in enumerate(names):
+            r1 = labeled(a, 3.3, 0.55, c, 16, MONO, bold=True)
+            r2 = tx(b, 18, TEXT_MAIN).next_to(r1, RIGHT, buff=0.2)
+            g = VGroup(r1, r2).move_to(LEFT * 3.2 + UP * (1.9 - 0.8 * i))
+            g.align_to(LEFT * 6.2, LEFT)
+            rows.add(g)
+        res = rbox(3.0, 2.2, VIOLET).move_to(RIGHT * 4.0 + UP * 0.9)
+        rl = tx("tài nguyên, k = 2", 17, VIOLET, bold=True).move_to(res.get_top() + DOWN * 0.3)
+        ts = [labeled(f"T{i}", 0.8, 0.5, TH[i], 18, bold=True).move_to(RIGHT * 1.0 + UP * (1.8 - 0.65 * i)) for i in range(4)]
+        slot = [RIGHT * 3.4 + DOWN * 0.1 + UP * 0.9 * 0, RIGHT * 4.6 + DOWN * 0.1 + UP * 0.9 * 0]
+        slot = [RIGHT * 3.4 + UP * 0.6, RIGHT * 4.6 + UP * 0.6]
+        wait = tx("T2, T3 chờ", 18, CORAL, bold=True).move_to(RIGHT * 4.0 + DOWN * 1.0)
         steps = [([FadeIn(hdr)], 0.4),
-                 ([FadeIn(mode), FadeIn(lock), FadeIn(ll), *[FadeIn(g) for g in q], FadeIn(ql), FadeIn(holder)], 1.0),
-                 ([FadeIn(newd, shift=UP * 0.2)], 0.6),
-                 ([FadeOut(holder)], 0.6),
-                 ([AM(newd, lambda _m: _m.move_to(inlock).scale_to_fit_width(1.4)), FadeIn(res1)], 0.9),
-                 ([AM(q[0][0], lambda _m: _m.set_stroke(CORAL, 4))], 0.5),
-                 ([FadeOut(res1), AM(newd, lambda _m: _m.scale_to_fit_width(1.7).move_to(newd_pos)), AM(q[0][0], lambda _m: _m.set_stroke(TH[0], 2)),
-                   Transform(mode, mode2), FadeIn(holder)], 1.0),
-                 ([FadeOut(holder)], 0.6),
-                 ([AM(q[0], lambda _m: _m.move_to(inlock)), FadeIn(res2),
-                   self.setcap("Công bằng tránh đói, đổi lại thông lượng thấp hơn", AMBER)], 1.1)]
-        play_voiced(self, "02_23", steps)
+                 ([FadeIn(rows, lag_ratio=0.25)], 1.6),
+                 ([FadeIn(res), FadeIn(rl), *[FadeIn(t) for t in ts]], 0.8),
+                 ([AM(ts[0], lambda _m: _m.move_to(slot[0])), AM(ts[1], lambda _m: _m.move_to(slot[1]))], 1.0),
+                 ([FadeIn(wait), AM(ts[2][0], lambda _m: _m.set_stroke(CORAL, 4)), AM(ts[3][0], lambda _m: _m.set_stroke(CORAL, 4))], 0.9),
+                 ([AM(ts[0], lambda _m: _m.move_to(RIGHT * 4.0 + DOWN * 2.1)), FadeOut(wait)], 0.9),
+                 ([AM(ts[2], lambda _m: _m.move_to(slot[0]))], 0.9),
+                 ([AM(ts[3][0], lambda _m: _m.set_stroke(TH[3], 2))], 0.3),
+                 ([self.setcap("HPC: mutex và barrier dùng nhiều nhất", AMBER)], 0.8)]
+        play_voiced(self, "02_24", steps)
+
+    # ------------------------------------------------------------ 02_25
+    def seg_25(self):
+        hdr = make_header("C++ threads chạy trên Pthreads", "Linux", AMBER)
+        rows = [("std::jthread", "pthread_create"), ("join()", "pthread_join"), ("std::mutex", "pthread_mutex_t"),
+                ("condition_variable", "pthread_cond_t"), ("std::barrier", "pthread_barrier_t"),
+                ("counting_semaphore", "sem_t")]
+        L, R, A = self.maptable(rows, CYAN, TEAL)
+        ct = tx("C++", 20, CYAN, bold=True).move_to(LEFT * 3.7 + UP * 2.65)
+        pt = tx("Pthreads (C)", 20, TEAL, bold=True).move_to(RIGHT * 2.9 + UP * 2.65)
+        meas = labeled("tổng mảng 1 luồng: 0,072 s (C++) và 0,074 s (Pthreads)", 8.6, 0.55, AMBER, 18, bold=True).move_to(DOWN * 2.2)
+        steps = [([FadeIn(hdr), FadeIn(ct), FadeIn(pt)], 0.5)]
+        for l, r, a in zip(L, R, A):
+            steps.append(([FadeIn(l), GrowArrow(a), FadeIn(r)], 0.55))
+        steps += [([FadeIn(meas, shift=UP * 0.1)], 0.9),
+                  ([self.setcap("Chỉ cần đọc hiểu Pthreads; native_handle() trả pthread_t", AMBER)], 0.8)]
+        play_voiced(self, "02_25", steps)
+
+    # ------------------------------------------------------------ 02_26
+    def seg_26(self):
+        hdr = make_header("Đối chiếu OpenMP và C++ threads", "đồng bộ", AMBER)
+        rows = [("omp critical", "mutex + scoped_lock"), ("omp atomic", "std::atomic<T>"), ("omp barrier", "std::barrier"),
+                ("omp single", "1 luồng, rồi barrier"), ("omp masked", "if (id==0): không rào"), ("omp ordered", "condition_variable")]
+        L, R, A = self.maptable(rows, ORANGE, CYAN)
+        ct = tx("OpenMP", 20, ORANGE, bold=True).move_to(LEFT * 3.7 + UP * 2.65)
+        pt = tx("C++ threads", 20, CYAN, bold=True).move_to(RIGHT * 2.9 + UP * 2.65)
+        trap = labeled("Bẫy: viết  #pragma barrier  thiếu omp, bị bỏ qua", 9.4, 0.6, CORAL, 19, bold=True).move_to(DOWN * 2.35)
+        steps = [([FadeIn(hdr), FadeIn(ct), FadeIn(pt)], 0.5)]
+        for l, r, a in zip(L, R, A):
+            steps.append(([FadeIn(l), GrowArrow(a), FadeIn(r)], 0.55))
+        steps += [([FadeIn(trap, shift=UP * 0.1), self.setcap("master đã lỗi thời từ OpenMP 5.1: dùng masked", AMBER)], 1.0)]
+        play_voiced(self, "02_26", steps)
+
+    # ------------------------------------------------------------ 02_27
+    def seg_27(self):
+        hdr = make_header("jthread và stop_token", "C++20", AMBER)
+        mainl = tx("main", 18, CYAN, bold=True).move_to(LEFT * 5.7 + UP * 1.5)
+        work = tx("worker", 18, EMERALD, bold=True).move_to(LEFT * 5.7 + DOWN * 0.3)
+        lm = Line(LEFT * 4.8 + UP * 1.5, RIGHT * 5.4 + UP * 1.5, color=CYAN, stroke_width=3)
+        lw = Line(LEFT * 4.8 + DOWN * 0.3, RIGHT * 5.4 + DOWN * 0.3, color=EMERALD, stroke_width=3)
+        sl = labeled("sleep 50 ms", 2.6, 0.5, CYAN, 16, bold=True).move_to(LEFT * 3.2 + UP * 1.5)
+        rq = labeled("request_stop()", 2.6, 0.5, AMBER, 16, MONO, bold=True).move_to(RIGHT * 0.6 + UP * 1.5)
+        flag = labeled("stop_requested() = false", 4.2, 0.55, EMERALD, 17, MONO, bold=True).move_to(LEFT * 1.8 + DOWN * 1.3)
+        flag2 = labeled("stop_requested() = true", 4.2, 0.55, AMBER, 17, MONO, bold=True).move_to(LEFT * 1.8 + DOWN * 1.3)
+        n0 = mono("n = 0", 22, EMERALD, bold=True).move_to(RIGHT * 3.4 + DOWN * 0.3 + UP * 0.5)
+        n1 = mono("n = 24", 22, EMERALD, bold=True).move_to(RIGHT * 3.4 + DOWN * 0.3 + UP * 0.5)
+        n2 = mono("n = 48", 22, AMBER, bold=True).move_to(RIGHT * 3.4 + DOWN * 0.3 + UP * 0.5)
+        out = mono("dung sau 48 vong", 22, AMBER, bold=True).move_to(RIGHT * 3.4 + DOWN * 1.3)
+        cmp_ = labeled("std::thread: chỉ di chuyển, quên join() thì terminate", 8.4, 0.55, CORAL, 18, bold=True).move_to(DOWN * 2.3)
+        steps = [([FadeIn(hdr)], 0.4),
+                 ([FadeIn(mainl), FadeIn(work), Create(lm), Create(lw), FadeIn(flag), FadeIn(n0)], 1.0),
+                 ([FadeIn(sl)], 0.6),
+                 ([Transform(n0, n1)], 1.2),
+                 ([FadeIn(rq, shift=DOWN * 0.1)], 0.7),
+                 ([Transform(flag, flag2), Transform(n0, n2)], 1.0),
+                 ([FadeIn(out)], 0.7),
+                 ([FadeIn(cmp_), self.setcap("Hủy jthread = request_stop() rồi join()", AMBER)], 1.0)]
+        play_voiced(self, "02_27", steps)
+
+    # ------------------------------------------------------------ 02_28
+    def seg_28(self):
+        hdr = make_header("Chọn C++ threads hay OpenMP", "quyết định", AMBER)
+        rows = [("Vòng lặp trên mảng", "OpenMP", ORANGE), ("Song song hóa dần mã cũ", "OpenMP", ORANGE),
+                ("Đệ quy, cây, không đều", "OpenMP task", ORANGE), ("Luồng sống lâu: máy chủ, I/O", "C++ threads", CYAN),
+                ("Hàng đợi, chờ điều kiện", "C++ threads", CYAN), ("Gắn luồng vào lõi", "Pthreads qua native_handle()", TEAL)]
+        gs = VGroup()
+        for i, (a, b, c) in enumerate(rows):
+            l = labeled(a, 5.2, 0.55, BORDER_DIM, 18).move_to(LEFT * 2.6 + UP * (2.0 - 0.72 * i))
+            r = labeled(b, 4.2, 0.55, c, 18, bold=True).move_to(RIGHT * 3.2 + UP * (2.0 - 0.72 * i))
+            gs.add(VGroup(l, r))
+        hl = rbox(11.6, 0.68, AMBER, fill=AMBER, op=0.12, sw=3).move_to(gs[0])
+        steps = [([FadeIn(hdr)], 0.4), ([FadeIn(gs, lag_ratio=0.2)], 2.0),
+                 ([FadeIn(hl)], 0.5), ([AM(hl, lambda _m: _m.move_to(gs[3]))], 1.0),
+                 ([AM(hl, lambda _m: _m.move_to(gs[5]))], 1.0),
+                 ([self.setcap("Có thể kết hợp: chương trình C++ threads chứa vùng OpenMP", AMBER)], 0.9)]
+        play_voiced(self, "02_28", steps)
+
+    # ------------------------------------------------------------ 02_29
+    def seg_29(self):
+        hdr = make_header("Không có lịch tốt nhất", "schedule", AMBER)
+        panels = [("Tải đều", [("static", 0.039, EMERALD), ("dynamic,1", 3.648, CORAL), ("guided", 0.038, CYAN)], 3.648, -3.2),
+                  ("Mandelbrot: tải bất thường", [("static", 0.420, CORAL), ("dynamic,1", 0.159, EMERALD), ("guided", 0.268, AMBER)], 0.420, 3.2)]
+        allm = []
+        bars = []
+        for title, items, mx, cx in panels:
+            tt = tx(title, 19, TEXT_MAIN, bold=True).move_to(RIGHT * cx + UP * 2.4)
+            allm.append(tt)
+            pb = []
+            for j, (nm, v, c) in enumerate(items):
+                y = 1.4 - 0.9 * j
+                w = max(0.06, 3.0 * v / mx)
+                lab = mono(nm, 15, TEXT_MUTED).move_to(RIGHT * (cx - 2.8) + UP * y).align_to(RIGHT * (cx - 3.0), LEFT)
+                bar = Rectangle(width=w, height=0.5, fill_color=c, fill_opacity=0.95, stroke_width=0)
+                bar.move_to(RIGHT * (cx - 1.5) + UP * y).align_to(RIGHT * (cx - 1.5), LEFT)
+                val = tx(f"{v:.3f} s".replace(".", ","), 16, TEXT_MAIN, bold=True).next_to(bar, RIGHT, buff=0.1)
+                allm.append(lab)
+                pb.append((bar, val))
+            bars.append(pb)
+        n1 = labeled("dynamic,1 chậm gần 100 lần", 4.8, 0.55, CORAL, 17, bold=True).move_to(LEFT * 3.2 + DOWN * 1.7)
+        n2 = labeled("guided kém hơn dynamic,1", 4.8, 0.55, AMBER, 17, bold=True).move_to(RIGHT * 3.2 + DOWN * 1.7)
+        steps = [([FadeIn(hdr), *[FadeIn(m) for m in allm]], 0.8),
+                 ([*[GrowFromEdge(b, LEFT) for b, v in bars[0]], *[FadeIn(v) for b, v in bars[0]]], 1.2),
+                 ([FadeIn(n1)], 0.7),
+                 ([*[GrowFromEdge(b, LEFT) for b, v in bars[1]], *[FadeIn(v) for b, v in bars[1]]], 1.2),
+                 ([FadeIn(n2), self.setcap("8 luồng: mọi kiểu đánh đổi cân bằng tải và chi phí điều phối", AMBER)], 1.0)]
+        play_voiced(self, "02_29", steps)
+
+    # ------------------------------------------------------------ 02_30
+    def seg_30(self):
+        hdr = make_header("Task: ngưỡng cutoff", "OpenMP", AMBER)
+        data = [("10^3", 0.047, "≈ 130 000 task", CORAL), ("10^5", 0.012, "≈ 1000 task", EMERALD),
+                ("10^6", 0.013, "≈ 130 task", EMERALD), ("10^8", 0.037, "1 task", AMBER)]
+        base = DOWN * 1.2
+        axis = Line(LEFT * 5.2 + base, RIGHT * 1.4 + base, color=TEXT_MUTED, stroke_width=2)
+        bars, labs = [], []
+        for i, (c, v, t, col) in enumerate(data):
+            h = 3.2 * v / 0.047
+            x = -4.5 + 1.5 * i
+            b = Rectangle(width=0.9, height=h, fill_color=col, fill_opacity=0.95, stroke_width=0)
+            b.move_to(RIGHT * x + base, aligned_edge=DOWN)
+            b.align_to(base, DOWN)
+            vl = tx(f"{v:.3f} s".replace(".", ","), 16, TEXT_MAIN, bold=True).next_to(b, UP, buff=0.08)
+            cl = mono(f"cutoff {c}", 14, TEXT_MUTED).move_to(RIGHT * x + DOWN * 1.55)
+            tl = tx(t, 14, col).move_to(RIGHT * x + DOWN * 1.95)
+            bars.append(b)
+            labs.append(VGroup(vl, cl, tl))
+        notes = VGroup(tx("cutoff quá thấp:", 19, CORAL, bold=True), tx("quá nhiều task, chậm hơn tuần tự", 18, TEXT_MAIN),
+                       tx("cutoff 10^8: chỉ 1 task = tuần tự", 18, AMBER),
+                       tx("n = 10^8, 8 luồng", 16, TEXT_MUTED)).arrange(DOWN, aligned_edge=LEFT, buff=0.2).move_to(RIGHT * 4.3 + UP * 0.8)
+        steps = [([FadeIn(hdr), Create(axis)], 0.6)]
+        for b, l in zip(bars, labs):
+            steps.append(([GrowFromEdge(b, DOWN), FadeIn(l)], 0.8))
+        steps += [([FadeIn(notes, lag_ratio=0.2)], 1.2),
+                  ([self.setcap("Hạt quá mịn: chi phí quản lý nuốt lợi ích", AMBER)], 0.8)]
+        play_voiced(self, "02_30", steps)
+
+    # ------------------------------------------------------------ 02_31
+    def seg_31(self):
+        hdr = make_header("Tổng mảng: chạm băng thông bộ nhớ", "speedup", AMBER)
+        data = [(1, 1.00), (2, 1.95), (4, 2.88), (8, 3.00), (12, 3.00)]
+        base = DOWN * 1.6
+        u = 0.32
+        bars, ideal, labs = [], [], []
+        for i, (t, s) in enumerate(data):
+            x = -4.8 + 1.4 * i
+            b = Rectangle(width=0.8, height=u * s, fill_color=EMERALD if t < 4 else AMBER, fill_opacity=0.95, stroke_width=0)
+            b.move_to(RIGHT * x + base, aligned_edge=DOWN)
+            b.align_to(base, DOWN)
+            gh = Rectangle(width=0.8, height=u * t, stroke_color=TEXT_MUTED, stroke_width=1.5, fill_opacity=0)
+            gh.move_to(RIGHT * x + base, aligned_edge=DOWN)
+            gh.align_to(base, DOWN)
+            vl = tx(f"{s:.2f}".replace(".", ",") + "×", 16, TEXT_MAIN, bold=True).next_to(b, UP, buff=0.08) if t < 12 else \
+                tx("3,00×", 16, TEXT_MAIN, bold=True).next_to(b, UP, buff=0.08)
+            cl = tx(f"{t} luồng", 15, TEXT_MUTED).move_to(RIGHT * x + base + DOWN * 0.3)
+            bars.append(b)
+            ideal.append(gh)
+            labs.append(VGroup(vl, cl))
+        ax = Line(LEFT * 5.5 + base, RIGHT * 1.2 + base, color=TEXT_MUTED, stroke_width=2)
+        il = tx("khung xám = lý tưởng", 16, TEXT_MUTED).move_to(RIGHT * 4.0 + DOWN * 1.1)
+        info = VGroup(tx("mỗi phần tử: 1 phép cộng,", 18, TEXT_MAIN), tx("nhưng đọc 8 byte từ RAM", 18, TEXT_MAIN),
+                      tx("8 luồng: 1,6 GB / 0,024 s", 18, AMBER, bold=True),
+                      tx("≈ 67 GB/s: gần trần băng thông", 18, CORAL, bold=True)).arrange(DOWN, aligned_edge=LEFT, buff=0.22).move_to(RIGHT * 4.0 + UP * 0.6)
+        steps = [([FadeIn(hdr), Create(ax), FadeIn(il)], 0.6)]
+        for b, gh, l in zip(bars, ideal, labs):
+            steps.append(([FadeIn(gh), GrowFromEdge(b, DOWN), FadeIn(l)], 0.8))
+        steps += [([FadeIn(info, lag_ratio=0.25)], 1.6),
+                  ([self.setcap("Memory-bound: thêm lõi không giúp", AMBER)], 0.8)]
+        play_voiced(self, "02_31", steps)

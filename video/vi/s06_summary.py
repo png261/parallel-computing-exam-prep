@@ -35,12 +35,6 @@ def _icon(kind, col):
         for r in range(3):
             for c in range(4):
                 g.add(Square(0.26, stroke_color=col, stroke_width=1.5, fill_color=col, fill_opacity=0.2 + 0.1 * ((r + c) % 3)).move_to(_P((c - 1.5) * 0.3, (1 - r) * 0.3)))
-    else:            # algorithms: tree
-        pts = [_P(0, 0.4), _P(-0.5, 0), _P(0.5, 0), _P(-0.75, -0.4), _P(-0.25, -0.4), _P(0.5, -0.4)]
-        for a, b in [(0, 1), (0, 2), (1, 3), (1, 4), (2, 5)]:
-            g.add(Line(pts[a], pts[b], color=TEXT_MUTED, stroke_width=2))
-        for p in pts:
-            g.add(Dot(p, radius=0.09, color=col))
     return g
 
 
@@ -49,22 +43,22 @@ class Scene06Summary(Scene):
         setup_bg(self)
         hdr = make_header("Tổng kết: một trang để nhớ", "65 phút", AMBER)
 
-        mods = [("Nền tảng", CYAN), ("Bộ nhớ chung", EMERALD), ("MPI", AMBER), ("CUDA", VIOLET), ("Thuật toán", CORAL)]
+        mods = [("Ch1-2 nền tảng", CYAN), ("Threads+OpenMP", EMERALD), ("MPI", AMBER), ("CUDA", VIOLET)]
         tiles = []
         for i, (nm, col) in enumerate(mods):
-            fr = RoundedRectangle(width=2.3, height=1.55, corner_radius=0.12, stroke_color=col, stroke_width=1.8,
+            fr = RoundedRectangle(width=2.9, height=1.55, corner_radius=0.12, stroke_color=col, stroke_width=1.8,
                                   fill_color=PANEL_BG, fill_opacity=0.9)
             ic = _icon(i, col).move_to(fr.get_center() + UP * 0.2)
             lb = _T(nm, 16, col, weight=BOLD).move_to(fr.get_bottom() + UP * 0.25)
-            tiles.append(VGroup(fr, ic, lb).move_to(_P((i - 2) * 2.5, 1.8)))
+            tiles.append(VGroup(fr, ic, lb).move_to(_P((i - 1.5) * 3.2, 1.8)))
 
         F = [
-            ("1", "Amdahl: S = 1 / (P/N + 1 − P)", CYAN, 0),
-            ("2", "E = S/p = Ts / (p·Tp)", CYAN, 0),
-            ("3", "MPI: t(n) = α + n/β", AMBER, 2),
-            ("4", "idx = blockIdx.x·B + threadIdx.x", VIOLET, 3),
-            ("5", "SAXPY BW = 3·n·4 B / t", VIOLET, 3),
-            ("6", "Euler: v[A] − v[C] + 1", CORAL, 4),
+            ("1", "Amdahl: S = 1 / (P/N + S)", CYAN, 0),
+            ("2", "Tối đa = 1 / (1 − P)", CYAN, 0),
+            ("3", "static: n/p lần lặp/luồng", EMERALD, 1),
+            ("4", "MPI: t(n) = α + n/β", AMBER, 2),
+            ("5", "idx = blockIdx.x·B + threadIdx.x", VIOLET, 3),
+            ("6", "nblocks = (n + 255) / 256", VIOLET, 3),
         ]
         fcards = []
         for k, (num, txt, col, tidx) in enumerate(F):

@@ -17,11 +17,11 @@ DRILLS = {
       "say_a": "EREW, đọc độc quyền ghi độc quyền. Thuật toán EREW không bao giờ dựa vào truy cập đồng thời, nên chạy được cả trên CREW và CRCW, nhưng chiều ngược lại thì không."
     },
     {
-      "q": "Isoefficiency: hệ X cần W = Θ(p log p), hệ Y cần W = Θ(p²). Hệ nào dễ mở rộng hơn?",
-      "opts": ["X","Y","Mở rộng như nhau","Không thể biết"],
-      "ans": 0,
-      "say_q": "Hệ X có isoefficiency cỡ p log p, hệ Y có cỡ p bình phương. Hệ nào dễ mở rộng hơn?",
-      "say_a": "Hệ X. Isoefficiency cho biết kích thước bài toán phải tăng nhanh đến đâu để giữ hiệu suất không đổi. Tăng chậm hơn, p log p thay vì p bình phương, nghĩa là hệ dễ mở rộng hơn."
+      "q": "Amdahl: P = 0,90 và N = 10 bộ xử lý. Speedup xấp xỉ?",
+      "opts": ["10","9","5,26","1,9"],
+      "ans": 2,
+      "say_q": "Theo định luật Amdahl, chín mươi phần trăm mã song song hóa được, chạy trên mười bộ xử lý. Speedup xấp xỉ bao nhiêu?",
+      "say_a": "Khoảng năm phẩy hai sáu. Speedup bằng một chia, P chia N cộng S, tức là một chia không phẩy chín mươi trên mười cộng không phẩy một, bằng một chia không phẩy mười chín."
     }
   ],
   "M2": [
@@ -33,11 +33,11 @@ DRILLS = {
       "say_a": "Reduction cộng sum. Mỗi luồng bắt đầu từ không và các tổng riêng được gộp một lần, nên nhanh hơn nhiều so với critical hay atomic vốn đồng bộ ở mỗi vòng lặp."
     },
     {
-      "q": "Java: gọi wait() ngoài khối synchronized gây ra gì?",
-      "opts": ["Deadlock","Không có gì xảy ra","IllegalMonitorStateException","Luồng bị chấm dứt"],
-      "ans": 2,
-      "say_q": "Trong Java, điều gì xảy ra nếu bạn gọi wait bên ngoài khối synchronized trên đối tượng đó?",
-      "say_a": "Ngoại lệ IllegalMonitorStateException được ném ra. wait, notify và notifyAll phải được gọi khi đang giữ khóa của đối tượng, vì wait sẽ nhả khóa đó."
+      "q": "Vòng lặp có tải đều giữa các lần lặp. Nên thử schedule nào trước?",
+      "opts": ["dynamic,1","static","guided","runtime với 1 khúc"],
+      "ans": 1,
+      "say_q": "Vòng lặp OpenMP có tải đều giữa các lần lặp. Nên bắt đầu thử với schedule nào?",
+      "say_a": "Static. Nó có chi phí điều phối thấp nhất, giữ được vector hóa và tính cục bộ dữ liệu. Với tải đều, dynamic một chậm hơn nhiều vì mỗi lần lặp là một lần xin việc."
     },
     {
       "q": "1000 vòng lặp, 4 luồng, schedule(static): luồng 2 nhận những vòng lặp nào?",
@@ -63,11 +63,11 @@ DRILLS = {
       "say_a": "Mười. Scan là phép rút gọn tiền tố bao gồm, nên rank ba nhận một cộng hai cộng ba cộng bốn."
     },
     {
-      "q": "Chế độ gửi nào âm thầm bỏ thông điệp nếu bên nhận chưa sẵn sàng?",
-      "opts": ["Synchronous","Buffered","Standard","Ready"],
-      "ans": 3,
-      "say_q": "Theo bài giảng, chế độ gửi MPI nào âm thầm bỏ thông điệp nếu bên nhận chưa sẵn sàng?",
-      "say_a": "Ready send. Nó hoàn tất ngay và chỉ hoạt động nếu lệnh nhận tương ứng đã được đăng ký sẵn; còn buffered send thì giữ dữ liệu trong bộ đệm của người dùng."
+      "q": "Theo mô hình t(n) = α + n/β, nên làm gì khi gửi nhiều dữ liệu nhỏ?",
+      "opts": ["Gửi nhiều thông điệp nhỏ","Gộp thành ít thông điệp lớn","Luôn dùng MPI_Send chặn","Không có khác biệt"],
+      "ans": 1,
+      "say_q": "Theo mô hình chi phí t của n bằng alpha cộng n chia beta, khi cần gửi nhiều dữ liệu nhỏ thì nên làm gì?",
+      "say_a": "Gộp thành ít thông điệp lớn. Mỗi thông điệp đều phải trả độ trễ alpha, nên gửi ít thông điệp lớn sẽ rẻ hơn nhiều thông điệp nhỏ."
     }
   ],
   "M4": [
@@ -83,7 +83,7 @@ DRILLS = {
       "opts": ["Dùng __syncthreads()","Dùng shared memory","Không thể đồng bộ đáng tin cậy","Quay vòng chờ trên khóa toàn cục"],
       "ans": 2,
       "say_q": "Hai luồng ở các block khác nhau của cùng một grid cần đồng bộ với nhau. Điều nào đúng?",
-      "say_a": "Chúng không thể đồng bộ đáng tin cậy. Các block có thể chạy theo thứ tự bất kỳ, nên không đảm bảo cả hai cùng tồn tại một lúc. Hãy dùng một lần khởi chạy kernel mới làm rào chắn toàn cục."
+      "say_a": "Chúng không thể đồng bộ đáng tin cậy. Các block có thể chạy theo thứ tự bất kỳ, nên không đảm bảo cả hai cùng tồn tại một lúc. Vì vậy các block phải độc lập với nhau."
     },
     {
       "q": "SAXPY với 256 luồng/block, n = 1000: có bao nhiêu block được khởi chạy?",
@@ -91,29 +91,6 @@ DRILLS = {
       "ans": 3,
       "say_q": "SAXPY dùng 256 luồng mỗi block và n bằng một nghìn. Có bao nhiêu block được khởi chạy?",
       "say_a": "Bốn. n cộng 255, chia cho 256, là 1255 chia 256, cắt phần nguyên được 4. Như vậy có 1024 luồng, và câu kiểm tra if i nhỏ hơn n làm 24 luồng cuối ở trạng thái rảnh."
-    }
-  ],
-  "M5": [
-    {
-      "q": "Find-Max với accelerated cascading: (work, time) của nó là gì?",
-      "opts": ["O(n), O(log log n)","O(n^2), O(1)","O(n log log n), O(log log n)","O(n), O(log n)"],
-      "ans": 0,
-      "say_q": "Dùng accelerated cascading, Find-Max song song đạt work và time bao nhiêu?",
-      "say_a": "Work cỡ n và time cỡ log log n. Đầu tiên một cây cân bằng rút n xuống còn n chia log log n ứng viên với chi phí tuyến tính, rồi cây DLDT hoàn tất trong log log n bước."
-    },
-    {
-      "q": "Mạng sắp xếp bitonic cho n = 16: có bao nhiêu cột comparator?",
-      "opts": ["4","16","10","8"],
-      "ans": 2,
-      "say_q": "Mạng sắp xếp bitonic cần bao nhiêu cột comparator cho mười sáu phần tử?",
-      "say_a": "Mười. Với log n bằng bốn, độ sâu là bốn nhân năm chia hai, bằng mười. Đó là cỡ log bình phương n."
-    },
-    {
-      "q": "Sample sort trên p = 4 bộ xử lý: có bao nhiêu mẫu được sắp xếp để chọn các splitter?",
-      "opts": ["12","16","3","4"],
-      "ans": 0,
-      "say_q": "Trong sample sort trên bốn bộ xử lý, có bao nhiêu mẫu được thu thập và sắp xếp để chọn các splitter toàn cục?",
-      "say_a": "Mười hai. Mỗi bộ xử lý chọn p trừ một, tức là ba, mẫu cách đều, nên p nhân p trừ một là mười hai. Sau đó chọn p trừ một, tức là ba, splitter toàn cục."
     }
   ]
 }

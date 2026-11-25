@@ -1,6 +1,8 @@
 # Parallel & High-Performance Computing: final-exam prep
 
-Study material for a university course on parallel computing (Chapters 1–12 plus updated C++ threads, OpenMP, MPI and CUDA notes).
+**Live quiz (GitHub Pages): https://png261.github.io/parallel-computing-exam-prep/**
+
+Scope: Chapter 1 + Chapter 2 slides and the three updated notes (chuong 3 = C++ threads + OpenMP, chuong 4 = MPI, chuong 5 = CUDA).
 Target exam: 40–60 multiple-choice questions + 1–2 short essays, 60–70 minutes, closed book, calculator only.
 
 ## Repository layout
@@ -8,18 +10,17 @@ Target exam: 40–60 multiple-choice questions + 1–2 short essays, 60–70 min
 | Folder | Contents |
 |---|---|
 | [`quiz/`](quiz) | Interactive question banks (open the HTML file in a browser, no server needed) |
-| [`slides/`](slides) | Lecture slides `ch01_…` to `ch12_…` (PDF) |
+| [`slides/`](slides) | Lecture slides: Chapter 1 and Chapter 2 (PDF) |
 | [`notes/`](notes) | Updated Vietnamese notes: `ch03_cpp_threads_openmp_vi`, `ch04_mpi_vi`, `ch05_cuda_vi` |
 | [`video/vi/`](video/vi) | Source of the Vietnamese review video (Manim scenes + narration, voice: VieNeu-TTS) |
-| [`video/en/`](video/en) | Source of the English review video |
+| [`video/en/`](video/en) | Source of the older English video (previous scope: Ch. 1–12, not updated) |
 
-Rendered videos are on the [Releases page](../../releases/tag/v1.0.0) (too large for normal commits):
-`review-video_vi_VieNeu_51min.mp4` (Vietnamese, chapter markers per module) and `review-video_en_33min.mp4` (English).
+The rendered Vietnamese review video (49 min, chapter markers per module) is on the [Releases page](../../releases/latest) (too large for normal commits).
 
 ## Quiz
-- [`quiz/practice_quiz_vi.html`](quiz/practice_quiz_vi.html): Vietnamese, 461 multiple-choice questions + 17 essays, each with an answer and explanation.
+- [`quiz/practice_quiz_vi.html`](quiz/practice_quiz_vi.html): Vietnamese, 395 multiple-choice questions + 16 essays, each with an answer and explanation.
 - [`quiz/practice_quiz.html`](quiz/practice_quiz.html): English version of the same bank.
-- Study mode shows the answer immediately; exam mode hides it until you press Grade; the mock exam draws 50 MCQs + 2 essays with a 65-minute timer.
+- Study mode shows the answer immediately; exam mode hides it until you press Grade; the mock exam draws 50 MCQs (12 Ch.1–2, 14 chuong 3, 12 chuong 4, 12 chuong 5) + 2 essays with a 65-minute timer.
 - Math is rendered with [KaTeX](https://katex.org) (bundled in `quiz/katex/`; keep that folder next to the HTML files).
 
 ## Rebuilding the Vietnamese video

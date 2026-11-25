@@ -156,47 +156,44 @@ class Scene03MPI(Scene):
 
     # ------------------------------------------------------------------ 03_04
     def seg04(self):
-        hdr = make_header("Chi phí ping-pong", "t(n) = α + n / β", AMBER)
+        hdr = make_header("Chi phí thông điệp: α + n / β", "t(n) = α + n / β", AMBER)
         ox, oy, Lx, Ly = -5.5, -2.5, 6.8, 3.9
-        k = 3.5 / 60.0
+        k = 3.5 / 25.0
         xax = Ar(P(ox, oy), P(ox + Lx, oy), color=TEXT_MUTED, buff=0, stroke_width=2.5, max_tip_length_to_length_ratio=0.05)
         yax = Ar(P(ox, oy), P(ox, oy + Ly), color=TEXT_MUTED, buff=0, stroke_width=2.5, max_tip_length_to_length_ratio=0.05)
         xl = T("n (byte)", 14, TEXT_MUTED).move_to(P(ox + Lx + 0.5, oy - 0.3))
         yl = T("t (μs)", 14, TEXT_MUTED).move_to(P(ox + 0.1, oy + Ly + 0.15))
-        tick = T("1 MB", 14, TEXT_MUTED).move_to(P(ox + 6.0, oy - 0.3))
+        tick = T("1 MiB", 14, TEXT_MUTED).move_to(P(ox + 6.0, oy - 0.3))
         tk = Line(P(ox + 6.0, oy - 0.08), P(ox + 6.0, oy + 0.08), color=TEXT_MUTED)
-        a0, a1 = P(ox, oy + 2.5 * k), P(ox + 6.0, oy + 52.5 * k)
+        a0, a1 = P(ox, oy + 0.3 * k), P(ox + 6.0, oy + 23.8 * k)
         line = Line(a0, a1, color=CYAN, stroke_width=4)
         dot = Dot(a0, color=AMBER, radius=0.1)
-        alpha_d = DashedLine(P(ox, a0[1]), P(ox + 1.6, a0[1]), color=AMBER)
-        alpha_l = T("α = 2,5 μs", 15, AMBER, bold=True).move_to(P(ox + 2.9, a0[1]))
+        alpha_l = T("α = 0,106 μs", 15, AMBER, bold=True).move_to(P(ox + 2.4, oy + 0.45))
         guide = DashedLine(a1, P(ox, a1[1]), color=TEXT_MUTED)
-        end_l = T("52,5 μs", 16, EMERALD, bold=True).move_to(a1 + UP * 0.35 + LEFT * 0.2)
-        # right panel
-        x0, s = 2.5, 0.075
-        inp = T("n = 1 MB, β = 20 GB/s", 15, TEXT_MUTED).move_to(P(4.3, 1.95))
+        end_l = T("23,8 μs", 16, EMERALD, bold=True).move_to(a1 + UP * 0.35 + LEFT * 0.2)
+        # right panel: 1 MiB qua bộ nhớ chung và qua TCP loopback
+        x0, s = 1.6, 0.075
+        inp = T("thông điệp 1 MiB", 15, TEXT_MUTED).move_to(P(4.0, 2.2))
 
-        def bar_row(y):
-            a = Rectangle(width=2.5 * s, height=0.5, color=AMBER, stroke_width=1).set_fill(AMBER, 0.9)
-            b = Rectangle(width=50 * s, height=0.5, color=CYAN, stroke_width=1).set_fill(CYAN, 0.85)
+        def bar_row(y, a_us, tot_us, col):
+            a = Rectangle(width=max(a_us * s, 0.06), height=0.5, color=AMBER, stroke_width=1).set_fill(AMBER, 0.9)
+            b = Rectangle(width=(tot_us - a_us) * s, height=0.5, color=col, stroke_width=1).set_fill(col, 0.85)
             a.move_to(P(x0 + a.width / 2, y))
             b.next_to(a, RIGHT, buff=0)
             return VGroup(a, b)
-        row1 = bar_row(1.1)
-        row2 = bar_row(0.25)
-        l1 = T("đi", 15, TEXT_MAIN).move_to(P(x0 - 0.3, 1.1))
-        l2 = T("về", 15, TEXT_MAIN).move_to(P(x0 - 0.3, 0.25))
-        la = T("α", 15, AMBER, bold=True).move_to(P(x0 + 0.1, 1.6))
-        lb = T("n/β = 50 μs", 14, DARK, bold=True).move_to(row1[1])
-        tot = T("khứ hồi = 2 × 52,5 = 105 μs", 17, AMBER, bold=True).move_to(P(4.3, -0.55))
+        row1 = bar_row(1.4, 0.106, 23.8, CYAN)
+        row2 = bar_row(0.2, 2.63, 59.9, CORAL)
+        l1 = T("bộ nhớ chung: 23,8 μs", 15, CYAN, bold=True).move_to(P(4.0, 1.9))
+        l2 = T("TCP loopback: 59,9 μs", 15, CORAL, bold=True).move_to(P(4.0, 0.7))
+        la = T("α = 2,63", 14, AMBER, bold=True).move_to(P(x0 + 0.1, -0.35))
+        tot = T("nhỏ: chịu α · lớn: chịu băng thông", 17, AMBER, bold=True).move_to(P(3.9, -1.5))
         play_voiced(self, "03_04", [
             ([FadeIn(hdr), Create(xax), Create(yax), FadeIn(xl), FadeIn(yl), FadeIn(tick), FadeIn(tk)], 2.5),
-            ([FadeIn(dot), Create(alpha_d), FadeIn(alpha_l)], 2.0),
+            ([FadeIn(dot), FadeIn(alpha_l)], 2.0),
             ([Create(line), MoveAlongPath(dot, line)], 4.0),
             ([Create(guide), FadeIn(end_l, shift=UP * 0.1), Indicate(dot)], 2.0),
-            ([FadeIn(inp), GrowFromEdge(row1[0], LEFT), FadeIn(la)], 2.0),
-            ([GrowFromEdge(row1[1], LEFT), FadeIn(lb), FadeIn(l1)], 3.0),
-            ([FadeIn(row2), FadeIn(l2)], 2.5),
+            ([FadeIn(inp), FadeIn(row1), FadeIn(l1)], 2.5),
+            ([FadeIn(row2), FadeIn(l2), FadeIn(la)], 3.0),
             ([FadeIn(tot, shift=UP * 0.1)], 2.0),
         ])
         clear_stage(self)
@@ -212,11 +209,11 @@ class Scene03MPI(Scene):
         top_t = T("8 tin nhỏ", 15, TEXT_MAIN).move_to(P(3.0, 1.9))
         small = VGroup(*[Rectangle(width=u - 0.05, height=0.5, color=AMBER, stroke_width=1).set_fill(AMBER, 0.9) for _ in range(8)])
         small.arrange(RIGHT, buff=0.05).move_to(P(x0 + 4 * u, 1.3)).align_to(P(x0, 0), LEFT)
-        sl = T("8 × α = 20 μs", 16, AMBER, bold=True).move_to(P(3.2, 0.7))
+        sl = T("8 × α = 21 μs", 16, AMBER, bold=True).move_to(P(3.2, 0.7))
         bot_t = T("1 tin lớn", 15, TEXT_MAIN).move_to(P(3.0, -0.2))
         big = Rectangle(width=u - 0.05, height=0.5, color=EMERALD, stroke_width=1).set_fill(EMERALD, 0.9)
         big.move_to(P(x0 + (u - 0.05) / 2, -0.8))
-        bl = T("1 × α = 2,5 μs", 16, EMERALD, bold=True).move_to(P(3.2, -1.4))
+        bl = T("1 × α = 2,63 μs", 16, EMERALD, bold=True).move_to(P(3.2, -1.4))
         take = T("Ít tin, tin to", 24, AMBER, bold=True).move_to(P(3.2, -2.5))
         play_voiced(self, "03_05", [
             ([FadeIn(hdr)], 0.8),
@@ -289,11 +286,11 @@ class Scene03MPI(Scene):
         busy = Rectangle(width=0.3, height=2.0, color=TEXT_MUTED, stroke_width=1).set_fill(TEXT_MUTED, 0.5).move_to(P(cx1, 0.45))
         bl = T("đang tính", 14, TEXT_MUTED).move_to(P(cx1 + 0.95, 0.45))
         rts = Ar(P(cx0 + 0.2, 1.4), P(cx1 - 0.2, 1.1), color=AMBER, buff=0, stroke_width=3)
-        rtl = T("RTS", 15, AMBER, bold=True).move_to(P(0, 1.55))
+        rtl = T("gửi?", 15, AMBER, bold=True).move_to(P(0, 1.55))
         rbar = Rectangle(width=0.3, height=1.4, color=EMERALD, stroke_width=1).set_fill(EMERALD, 0.9).move_to(P(cx1, -1.3))
         rl = T("Recv", 15, EMERALD, bold=True).move_to(P(cx1 + 0.6, -1.75))
         cts = Ar(P(cx1 - 0.2, -0.75), P(cx0 + 0.2, -1.0), color=EMERALD, buff=0, stroke_width=3)
-        ctl = T("CTS", 15, EMERALD, bold=True).move_to(P(0, -0.55))
+        ctl = T("sẵn sàng", 15, EMERALD, bold=True).move_to(P(0, -0.55))
         data = pkt("4020B", AMBER, w=0.95, h=0.38, size=13).move_to(P(cx0 + 0.2, -1.2))
         done = T("return ✓", 16, EMERALD, bold=True).move_to(P(cx0 - 0.95, -2.05))
         take = T("Send chặn đến khi Recv sẵn sàng", 20, AMBER, bold=True).move_to(P(0.5, -3.15))
@@ -346,7 +343,7 @@ class Scene03MPI(Scene):
     def seg09(self):
         hdr = make_header("3 cách sửa deadlock", "an toàn", EMERALD)
         cxs = [-4.4, 0.0, 4.4]
-        titles = ["① Chẵn / lẻ", "② Sendrecv", "③ Isend + Irecv"]
+        titles = ["① Sắp thứ tự", "② Sendrecv", "③ Isend + Irecv"]
         cols = [AMBER, CYAN, VIOLET]
         divs = VGroup(DashedLine(P(-2.2, 2.5), P(-2.2, -2.4), color=BORDER_DIM), DashedLine(P(2.2, 2.5), P(2.2, -2.4), color=BORDER_DIM))
         ts = VGroup(*[T(titles[i], 19, cols[i], bold=True).move_to(P(cxs[i], 2.15)) for i in range(3)])
@@ -355,8 +352,8 @@ class Scene03MPI(Scene):
             circ.add(rank_node(0, CYAN, r=0.4, label="0").move_to(P(cx - 1.4, 0.6)),
                      rank_node(1, EMERALD, r=0.4, label="1").move_to(P(cx + 1.4, 0.6)))
         sub = VGroup(
-            T("chẵn: Send→Recv", 13, TEXT_MUTED, MONO).move_to(P(cxs[0], -0.35)),
-            T("lẻ:   Recv→Send", 13, TEXT_MUTED, MONO).move_to(P(cxs[0], -0.7)),
+            T("rank 0: Send→Recv", 13, TEXT_MUTED, MONO).move_to(P(cxs[0], -0.35)),
+            T("rank 1: Recv→Send", 13, TEXT_MUTED, MONO).move_to(P(cxs[0], -0.7)),
             T("gộp gửi + nhận", 14, TEXT_MUTED).move_to(P(cxs[1], -0.5)),
             T("khởi động cả hai", 14, TEXT_MUTED).move_to(P(cxs[2], -0.5)),
         )
@@ -932,47 +929,6 @@ class Scene03MPI(Scene):
         ])
         clear_stage(self)
 
-    # ------------------------------------------------------------------ 03_26
-    def seg26(self):
-        hdr = make_header("4 chế độ gửi trong MPI", "Standard · Sync · Buffered · Ready", AMBER)
-        cxs = [-4.95, -1.65, 1.65, 4.95]
-        cols = [CYAN, VIOLET, EMERALD, CORAL]
-        titles = [("Standard", "MPI_Send"), ("Synchronous", "MPI_Ssend"), ("Buffered", "MPI_Bsend"), ("Ready", "MPI_Rsend")]
-        notes = [["nhỏ: đệm, về ngay", "lớn: chờ Recv"], ["xong khi Recv", "đã bắt đầu", "hợp để thử deadlock"],
-                 ["chép vào buffer", "MPI_Buffer_attach", "rồi về ngay"], ["Recv phải có sẵn", "nếu chưa: bỏ tin", "rất nguy hiểm"]]
-        spec = [dict(m=(0.8, 0.5), ret=0.7, recv=None, ack=None), dict(m=(0.8, 0.5), ret=-0.45, recv=0.2, ack=(-0.1, -0.4)),
-                dict(m=(0.8, 0.5), ret=0.7, recv=None, ack=None), dict(m=(0.5, 0.3), ret=0.4, recv=0.95, ack=None)]
-        cards = []
-        for k in range(4):
-            cx, col, sp = cxs[k], cols[k], spec[k]
-            sx, rx = cx - 0.8, cx + 0.8
-            frame = RoundedRectangle(width=3.15, height=5.0, corner_radius=0.15, color=col, stroke_width=1.8).set_fill(PANEL_BG, 0.7).move_to(P(cx, -0.1))
-            t1 = T(titles[k][0], 19, col, bold=True).move_to(P(cx, 2.05))
-            t2 = T(titles[k][1], 15, TEXT_MAIN, MONO).move_to(P(cx, 1.65))
-            sl = T("S", 14, TEXT_MUTED, bold=True).move_to(P(sx, 1.3))
-            rl = T("R", 14, TEXT_MUTED, bold=True).move_to(P(rx, 1.3))
-            ln = VGroup(Line(P(sx, 1.1), P(sx, -1.0), color=TEXT_MUTED, stroke_width=2), Line(P(rx, 1.1), P(rx, -1.0), color=TEXT_MUTED, stroke_width=2))
-            msg = Ar(P(sx, sp["m"][0]), P(rx, sp["m"][1]), color=AMBER, buff=0, stroke_width=3, max_tip_length_to_length_ratio=0.15)
-            dot = Dot(P(sx, sp["ret"]), radius=0.1, color=col)
-            rt = T("trả về", 12, col).move_to(P(sx - 0.48, sp["ret"]))
-            extra = VGroup()
-            if sp["recv"] is not None:
-                extra.add(box("Recv", EMERALD, w=0.7, h=0.3, size=11).move_to(P(rx, sp["recv"])))
-            if sp["ack"] is not None:
-                extra.add(DashedLine(P(rx, sp["ack"][0]), P(sx, sp["ack"][1]), color=EMERALD, stroke_width=2))
-            nt = VGroup(*[T(s, 13, TEXT_MAIN if (k == 3 and i == 2) is False else CORAL).move_to(P(cx, -1.4 - 0.36 * i)) for i, s in enumerate(notes[k])])
-            body = VGroup(sl, rl, ln, msg, dot, rt, extra)
-            cards.append((VGroup(frame, t1, t2), body, nt))
-        play_voiced(self, "03_26", [
-            ([FadeIn(hdr)] + [FadeIn(c[0]) for c in cards], 2.0),
-            ([FadeIn(cards[0][1]), FadeIn(cards[0][2])], 5.0),
-            ([FadeIn(cards[1][1]), FadeIn(cards[1][2])], 6.0),
-            ([FadeIn(cards[2][1]), FadeIn(cards[2][2])], 6.0),
-            ([FadeIn(cards[3][1]), FadeIn(cards[3][2])], 6.0),
-            ([Indicate(cards[1][0], color=VIOLET, scale_factor=1.03)], 2.5),
-        ])
-        clear_stage(self)
-
     # ------------------------------------------------------------------ 03_27
     def seg27(self):
         hdr = make_header("Lỗi thường gặp và quy trình", "danh sách kiểm tra", CORAL)
@@ -995,12 +951,182 @@ class Scene03MPI(Scene):
         ])
         clear_stage(self)
 
+    # ------------------------------------------------------------------ 03_28
+    def seg28(self):
+        hdr = make_header("SPMD: một chương trình, nhiều rank", "mpirun -np 4", CYAN)
+        code = make_code_box(["MPI_Init(&argc, &argv);", "MPI_Comm_rank(c, &rank);", "MPI_Comm_size(c, &size);",
+                              "if (rank == 0) { ... }", "MPI_Finalize();"], width=5.8, font_size=15, accent=CYAN).move_to(P(-3.3, 0.5))
+        lines = code[1][0]
+        hl = SurroundingRectangle(lines[0], color=AMBER, buff=0.06, stroke_width=2)
+        ys = [1.5, 0.5, -0.5, -1.5]
+        ranks = VGroup(*[rank_node(i, r=0.4).move_to(P(1.2, ys[i])) for i in range(4)])
+        def outs(order):
+            return [box(f"rank {i} / 4", RANK_COLORS[i], w=2.1, h=0.5, size=14).move_to(P(3.6, ys[i])) for i in order]
+        run1 = outs([1, 2, 3, 0])
+        run2 = outs([2, 0, 3, 1])
+        l1 = T("lần chạy 1", 15, AMBER, bold=True).move_to(P(5.2, 2.3))
+        l2 = T("lần chạy 2", 15, VIOLET, bold=True).move_to(P(5.2, 2.3))
+        cap = T("Thứ tự in thay đổi mỗi lần chạy", 22, AMBER, bold=True).move_to(P(0, -2.9))
+        r1 = VGroup(*run1)
+        r2 = VGroup(*run2)
+        play_voiced(self, "03_28", [
+            ([FadeIn(hdr), FadeIn(code), FadeIn(ranks)], 2.5),
+            ([Create(hl)], 1.0),
+            ([Transform(hl, SurroundingRectangle(lines[1], color=AMBER, buff=0.06, stroke_width=2))], 1.0),
+            ([Transform(hl, SurroundingRectangle(lines[2], color=AMBER, buff=0.06, stroke_width=2))], 1.0),
+            ([Transform(hl, SurroundingRectangle(lines[3], color=EMERALD, buff=0.06, stroke_width=2))], 1.5),
+            ([Transform(hl, SurroundingRectangle(lines[4], color=CORAL, buff=0.06, stroke_width=2))], 1.0),
+            ([FadeIn(l1)] + [FadeIn(o, shift=LEFT * 0.2) for o in run1[:1]], 1.0),
+            ([FadeIn(run1[1])], 0.8), ([FadeIn(run1[2])], 0.8), ([FadeIn(run1[3])], 0.8),
+            ([FadeOut(r1), Transform(l1, l2)], 1.0),
+            ([FadeIn(run2[0])], 0.8), ([FadeIn(run2[1])], 0.8), ([FadeIn(run2[2])], 0.8), ([FadeIn(run2[3])], 0.8),
+            ([FadeIn(cap, shift=UP * 0.1)], 1.5),
+        ])
+        clear_stage(self)
+
+    # ------------------------------------------------------------------ 03_29
+    def seg29(self):
+        hdr = make_header("Biên dịch và chạy MPI", "mpicxx · mpirun", EMERALD)
+        c1 = box("mpicxx prog.cpp -o prog", CYAN, w=4.4, h=0.6, size=15).move_to(P(-3.6, 1.9))
+        c2 = box("mpirun -np 4 ./prog", EMERALD, w=4.0, h=0.6, size=15).move_to(P(2.3, 1.9))
+        arr = Ar(c1.get_right(), c2.get_left(), color=TEXT_MUTED, buff=0.1, stroke_width=2.5, max_tip_length_to_length_ratio=0.5)
+        wrap = T("lớp bọc quanh g++", 14, TEXT_MUTED).move_to(P(-3.6, 1.35))
+        procs = VGroup(*[rank_node(i, r=0.3, label=str(i)).move_to(P(5.2 + 0 * i, 1.9)) for i in range(1)])
+        cores = VGroup(*[Rectangle(width=0.8, height=0.55, color=BORDER_DIM, stroke_width=1.5).set_fill(PANEL_BG, 0.8) for _ in range(12)])
+        cores.arrange_in_grid(rows=2, cols=6, buff=0.12).move_to(P(-2.6, -0.3))
+        cl = T("máy 12 lõi", 15, TEXT_MUTED).move_to(P(-2.6, 0.75))
+        dots = VGroup(*[Dot(cores[i].get_center(), radius=0.12, color=EMERALD) for i in range(12)])
+        ok = T("-np 12  ✓", 20, EMERALD, bold=True).move_to(P(3.3, 0.4))
+        dots2 = VGroup(*[Dot(cores[i % 12].get_center() + RIGHT * (0.2 if i >= 12 else -0.2) * 0.5, radius=0.1, color=CORAL) for i in range(12, 24)])
+        no = T("-np 24  ✗  bị từ chối", 20, CORAL, bold=True).move_to(P(3.3, -0.4))
+        fix = box("--oversubscribe", AMBER, w=3.0, h=0.55, size=15).move_to(P(3.3, -1.2))
+        hf = box("--hostfile hosts.txt", VIOLET, w=3.8, h=0.55, size=15).move_to(P(-2.6, -2.2))
+        hfl = T("nhiều máy: mỗi dòng một nút + slot", 14, TEXT_MUTED).move_to(P(3.0, -2.2))
+        play_voiced(self, "03_29", [
+            ([FadeIn(hdr), FadeIn(c1), FadeIn(wrap)], 3.0),
+            ([GrowArrow(arr), FadeIn(c2)], 2.0),
+            ([FadeIn(cores), FadeIn(cl)], 2.0),
+            ([LaggedStart(*[FadeIn(d, scale=0.5) for d in dots], lag_ratio=0.1), FadeIn(ok)], 3.0),
+            ([LaggedStart(*[FadeIn(d, scale=0.5) for d in dots2], lag_ratio=0.1), FadeIn(no)], 3.0),
+            ([FadeOut(dots2), FadeIn(fix)], 2.5),
+            ([FadeIn(hf), FadeIn(hfl)], 3.0),
+        ])
+        clear_stage(self)
+
+    # ------------------------------------------------------------------ 03_30
+    def seg30(self):
+        hdr = make_header("MPI_Recv: vùng nhận và status", "count · ANY_SOURCE", AMBER)
+        r0 = rank_node(0, CYAN, r=0.45).move_to(P(5.5, 0.9))
+        def slots(n, col, filled):
+            g = VGroup(*[box(str(v), col, w=0.7, h=0.6, size=16) for v in filled] +
+                       [box("", BORDER_DIM, w=0.7, h=0.6, size=16) for _ in range(n - len(filled))]).arrange(RIGHT, buff=0.06)
+            return g
+        buf = slots(4, EMERALD, [3, 5]).move_to(P(1.8, 1.7))
+        bl = T("vùng nhận: 4 phần tử", 15, TEXT_MUTED).move_to(P(1.8, 2.3))
+        okm = T("thông điệp 2  ≤ 4  ✓", 20, EMERALD, bold=True).move_to(P(-3.3, 1.7))
+        buf2 = slots(4, CORAL, [3, 5, 7, 9]).move_to(P(1.8, 0.5))
+        extra = VGroup(box("1", CORAL, w=0.7, h=0.6, size=16), box("2", CORAL, w=0.7, h=0.6, size=16)).arrange(RIGHT, buff=0.06).next_to(buf2, RIGHT, buff=0.06)
+        badm = T("thông điệp 6  >  4  ✗", 20, CORAL, bold=True).move_to(P(-3.3, 0.5))
+        sep = DashedLine(P(-6.3, -0.4), P(6.3, -0.4), color=BORDER_DIM)
+        ws = VGroup(*[rank_node(i, RANK_COLORS[i], r=0.3, label=str(i)).move_to(P(-5.6, -0.9 - 0.65 * (i - 1) + 0.0)) for i in (1, 2, 3)])
+        vals = {1: 1, 2: 4, 3: 9}
+        q0 = rank_node(0, CYAN, r=0.4).move_to(P(-1.0, -1.55))
+        wl = T("ANY_SOURCE: ai tới trước nhận trước", 15, TEXT_MUTED).move_to(P(-1.0, -0.8))
+        order = [3, 2, 1]
+        rows = VGroup(*[box(f"from {w}: {vals[w]}", RANK_COLORS[w], w=2.4, h=0.5, size=14).move_to(P(2.6, -1.0 - 0.6 * j)) for j, w in enumerate(order)])
+        tot = box("total = 14", AMBER, w=2.4, h=0.55, size=16).move_to(P(5.2, -1.6))
+        pk = [pkt(str(vals[w]), RANK_COLORS[w], w=0.5, h=0.35, size=14).move_to(ws[w - 1].get_center() + RIGHT * 0.5) for w in order]
+        play_voiced(self, "03_30", [
+            ([FadeIn(hdr), FadeIn(r0), FadeIn(buf), FadeIn(bl)], 2.5),
+            ([FadeIn(okm, shift=RIGHT * 0.1)], 2.0),
+            ([FadeIn(buf2), FadeIn(extra)], 1.5),
+            ([FadeIn(badm, shift=RIGHT * 0.1), Wiggle(extra)], 3.0),
+            ([Create(sep), FadeIn(ws), FadeIn(q0), FadeIn(wl)], 3.0),
+            ([FadeIn(pk[0]), pk[0].animate.move_to(q0.get_center() + LEFT * 0.5), FadeIn(rows[0])], 2.0),
+            ([FadeIn(pk[1]), pk[1].animate.move_to(q0.get_center() + LEFT * 0.5), FadeIn(rows[1])], 2.0),
+            ([FadeIn(pk[2]), pk[2].animate.move_to(q0.get_center() + LEFT * 0.5), FadeIn(rows[2])], 2.0),
+            ([FadeIn(tot, scale=1.2)], 2.0),
+        ])
+        clear_stage(self)
+
+    # ------------------------------------------------------------------ 03_31
+    def seg31(self):
+        hdr = make_header("Tập thể: mọi rank phải gọi", "cùng thứ tự", CORAL)
+        xs = [-4.5, -1.5, 1.5, 4.5]
+        rk = VGroup(*[rank_node(i, r=0.4).move_to(P(xs[i], 1.6)) for i in range(4)])
+        calls = VGroup(*[box("Reduce", EMERALD, w=1.7, h=0.5, size=15).move_to(P(xs[i], 0.6)) for i in range(4)])
+        skip = box("bỏ qua", CORAL, w=1.7, h=0.5, size=15).move_to(P(xs[2], 0.6))
+        hang = T("cả nhóm treo", 24, CORAL, bold=True).move_to(P(0, -0.4))
+        chart = make_bar_chart([6.1, 8.6, 14.4], ["vòng lặp", "Reduce", "Allreduce"], [AMBER, EMERALD, CYAN],
+                               max_val=14.4, width=5.0, height=2.8, unit="ms").move_to(P(-3.0, 0.4))
+        ct = T("m = 10⁶ double, 12 rank", 15, TEXT_MUTED).move_to(P(-3.0, 2.25))
+        note1 = T("1 nút: vòng lặp đôi khi nhanh hơn", 16, AMBER, bold=True).move_to(P(3.2, 1.0))
+        note2 = T("tập thể: gọn, log p bước", 16, EMERALD, bold=True).move_to(P(3.2, 0.1))
+        play_voiced(self, "03_31", [
+            ([FadeIn(hdr), FadeIn(rk), FadeIn(calls)], 3.0),
+            ([Transform(calls[2], skip)], 2.0),
+            ([FadeIn(hang, scale=1.2), Wiggle(rk)], 3.0),
+            ([FadeOut(VGroup(rk, calls, hang))], 1.0),
+            ([FadeIn(ct), FadeIn(chart[0]), FadeIn(chart[1])] + [GrowFromEdge(b[0], DOWN) for b in chart[2]] + [FadeIn(b[1]) for b in chart[2]] + [FadeIn(b[2]) for b in chart[2]], 4.0),
+            ([FadeIn(note1)], 3.0),
+            ([FadeIn(note2)], 3.0),
+        ])
+        clear_stage(self)
+
+    # ------------------------------------------------------------------ 03_32
+    def seg32(self):
+        hdr = make_header("Giới hạn mở rộng trên một nút", "12 rank", AMBER)
+        chart = make_bar_chart([11.1, 9.1, 3.8, 2.4], ["π", "Jacobi 1000", "matvec 6000", "Jacobi 4000"],
+                               [EMERALD, CYAN, AMBER, CORAL], max_val=12, width=8.0, height=4.2, unit="×").move_to(P(-1.5, -0.55))
+        why = VGroup(*[T(s, 14, TEXT_MUTED) for s in ["tính toán thuần", "vừa cache", "băng thông RAM", "băng thông RAM"]])
+        slot = 8.0 / 4
+        for i, w in enumerate(why):
+            w.move_to(P(chart[2][i][0].get_x(), chart[0].get_center()[1] - 0.62))
+        by = chart[0].get_center()[1] + 3.85
+        ideal = DashedLine(P(chart[0].get_left()[0], by), P(chart[0].get_right()[0], by), color=TEXT_MUTED, stroke_width=2)
+        il = T("lý tưởng = 12", 14, TEXT_MUTED).move_to(P(chart[0].get_right()[0] + 1.0, by))
+        cap = T("Đo để biết giới hạn", 20, AMBER, bold=True).move_to(P(4.5, 0.0))
+        play_voiced(self, "03_32", [
+            ([FadeIn(hdr), FadeIn(chart[0]), FadeIn(chart[1]), Create(ideal), FadeIn(il)], 2.5),
+            ([GrowFromEdge(chart[2][0][0], DOWN), FadeIn(chart[2][0][1]), FadeIn(chart[2][0][2]), FadeIn(why[0])], 3.0),
+            ([GrowFromEdge(chart[2][1][0], DOWN), FadeIn(chart[2][1][1]), FadeIn(chart[2][1][2]), FadeIn(why[1])], 3.0),
+            ([GrowFromEdge(chart[2][2][0], DOWN), FadeIn(chart[2][2][1]), FadeIn(chart[2][2][2]), FadeIn(why[2])], 3.0),
+            ([GrowFromEdge(chart[2][3][0], DOWN), FadeIn(chart[2][3][1]), FadeIn(chart[2][3][2]), FadeIn(why[3])], 3.0),
+            ([FadeIn(cap, shift=UP * 0.1)], 2.0),
+        ])
+        clear_stage(self)
+
+    # ------------------------------------------------------------------ 03_33
+    def seg33(self):
+        hdr = make_header("MPI hay OpenMP?", "so sánh", VIOLET)
+        h1 = T("OpenMP / luồng", 20, AMBER, bold=True).move_to(P(-0.9, 2.3))
+        h2 = T("MPI", 20, VIOLET, bold=True).move_to(P(3.7, 2.3))
+        rows = [("Bộ nhớ", "dùng chung", "riêng mỗi rank"), ("Quy mô", "một nút", "nhiều nút"),
+                ("Trao đổi", "ngầm, qua biến", "thông điệp"), ("Lỗi điển hình", "race condition", "bế tắc"),
+                ("Song song hóa", "từng vòng lặp", "chia dữ liệu")]
+        grp = []
+        for j, (a, b, c) in enumerate(rows):
+            y = 1.5 - 0.8 * j
+            la = T(a, 16, TEXT_MUTED, bold=True).move_to(P(-4.9, y))
+            ba = box(b, AMBER, w=3.4, h=0.6, size=15).move_to(P(-0.9, y))
+            bb = box(c, VIOLET, w=3.4, h=0.6, size=15).move_to(P(3.7, y))
+            grp.append(VGroup(la, ba, bb))
+        hyb = T("Lai: MPI giữa các nút + OpenMP trong nút", 20, EMERALD, bold=True).move_to(P(0, -2.75))
+        play_voiced(self, "03_33", [
+            ([FadeIn(hdr), FadeIn(h1), FadeIn(h2)], 1.5),
+            ([FadeIn(grp[0])], 2.5), ([FadeIn(grp[1])], 2.5), ([FadeIn(grp[2])], 2.5),
+            ([FadeIn(grp[3])], 3.0), ([FadeIn(grp[4])], 2.5),
+            ([FadeIn(hyb, shift=UP * 0.1)], 2.5),
+        ])
+        clear_stage(self)
+
+
     # ------------------------------------------------------------------ main
     def construct(self):
         setup_bg(self)
-        for f in (self.seg01, self.seg02, self.seg03, self.seg04, self.seg05, self.seg06, self.seg07,
-                  self.seg08, self.seg09, self.seg10, self.seg11, self.seg12, self.seg13, self.seg14,
-                  self.seg15, self.seg16, self.seg17, self.seg18, self.seg19,
-                  self.seg20, self.seg21, self.seg22, self.seg23, self.seg24, self.seg25, self.seg26, self.seg27):
+        for f in (self.seg01, self.seg28, self.seg29, self.seg02, self.seg30, self.seg03, self.seg04, self.seg05, self.seg06, self.seg07,
+                  self.seg08, self.seg09, self.seg10, self.seg11, self.seg12, self.seg13, self.seg14, self.seg31,
+                  self.seg15, self.seg16, self.seg17, self.seg18, self.seg19, self.seg32,
+                  self.seg20, self.seg21, self.seg22, self.seg23, self.seg24, self.seg25, self.seg33, self.seg27):
             f()
         play_module_drills(self, "M3", "MPI")
