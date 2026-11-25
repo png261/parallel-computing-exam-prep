@@ -1,5 +1,4 @@
-# lecture slides / notes (third-party course material) and rendered videos are not published
-*.pdf
+# rendered videos are published as release assets, not committed
 *.mp4
 *.wav
 *.aiff
