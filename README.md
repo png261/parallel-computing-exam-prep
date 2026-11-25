@@ -16,4 +16,4 @@ Exam format it targets: 40–60 multiple-choice questions + 1–2 short essays, 
 
 Build (Vietnamese): `pip install manim vieneu soundfile numpy`, then in `manim_exam_video_vi/` run `python generate_audio.py` (writes `tts_wav/`), then `manim -qm s01_foundations.py Scene01Foundations` (and s02–s06) and concatenate the scenes with ffmpeg.
 
-The lecture slides and rendered videos are not included in this repository.
+Rendered videos (too large for a normal commit) are on the [Releases page](https://github.com/png261/parallel-computing-exam-prep/releases/tag/v1.0.0): the Vietnamese video (51 min) and the English video (33 min). The lecture slides are not included in this repository.
