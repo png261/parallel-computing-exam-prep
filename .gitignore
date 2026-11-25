@@ -1,0 +1,14 @@
+# lecture slides / notes (third-party course material) and rendered videos are not published
+*.pdf
+*.mp4
+*.wav
+*.aiff
+# environments, caches, build output, backups
+vieneu-env/
+__pycache__/
+media/
+_backup_v1/
+_v1_text_heavy/
+*.bak
+.DS_Store
+.playwright-mcp/
