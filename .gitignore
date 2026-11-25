@@ -11,3 +11,4 @@ _v1_text_heavy/
 *.bak
 .DS_Store
 .playwright-mcp/
+tts_wav/

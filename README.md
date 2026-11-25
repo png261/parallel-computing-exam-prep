@@ -1,19 +1,32 @@
 # Parallel & High-Performance Computing: final-exam prep
 
 Study material for a university course on parallel computing (Chapters 1–12 plus updated C++ threads, OpenMP, MPI and CUDA notes).
-Exam format it targets: 40–60 multiple-choice questions + 1–2 short essays, 60–70 minutes, closed book, calculator only.
+Target exam: 40–60 multiple-choice questions + 1–2 short essays, 60–70 minutes, closed book, calculator only.
 
-## Quiz (open in a browser, no server needed)
-- `practice_quiz_vi.html`: Vietnamese, 461 multiple-choice questions + 17 essays, each with an answer and explanation.
-- `practice_quiz.html`: English version of the same bank.
+## Repository layout
+
+| Folder | Contents |
+|---|---|
+| [`quiz/`](quiz) | Interactive question banks (open the HTML file in a browser, no server needed) |
+| [`slides/`](slides) | Lecture slides, Chapters 1–12 (PDF) |
+| [`notes/`](notes) | Updated Vietnamese notes: C++ threads + OpenMP (ch. 3), MPI (ch. 4), CUDA (ch. 5) |
+| [`video/vi/`](video/vi) | Source of the Vietnamese review video (Manim scenes + narration, voice: VieNeu-TTS) |
+| [`video/en/`](video/en) | Source of the English review video |
+
+Rendered videos are on the [Releases page](../../releases/tag/v1.0.0) (too large for normal commits):
+the Vietnamese video (51 min, chapter markers per module) and the English video (33 min).
+
+## Quiz
+- [`quiz/practice_quiz_vi.html`](quiz/practice_quiz_vi.html): Vietnamese, 461 multiple-choice questions + 17 essays, each with an answer and explanation.
+- [`quiz/practice_quiz.html`](quiz/practice_quiz.html): English version of the same bank.
 - Study mode shows the answer immediately; exam mode hides it until you press Grade; the mock exam draws 50 MCQs + 2 essays with a 65-minute timer.
-- Math is rendered with [KaTeX](https://katex.org) (bundled in `katex/`; keep that folder next to the HTML files).
+- Math is rendered with [KaTeX](https://katex.org) (bundled in `quiz/katex/`; keep that folder next to the HTML files).
 
-## Review video source (Manim)
-- `manim_exam_video/`: English version (narration via macOS `say`).
-- `manim_exam_video_vi/`: Vietnamese, diagram-first version, narrated with [VieNeu-TTS](https://github.com/pnnbao97/VieNeu-TTS) (voice "Mai Anh").
-- Narration text is in `narr_vi_*.json` / `narration_data.py`.
-
-Build (Vietnamese): `pip install manim vieneu soundfile numpy`, then in `manim_exam_video_vi/` run `python generate_audio.py` (writes `tts_wav/`), then `manim -qm s01_foundations.py Scene01Foundations` (and s02–s06) and concatenate the scenes with ffmpeg.
-
-Rendered videos (too large for a normal commit) are on the [Releases page](https://github.com/png261/parallel-computing-exam-prep/releases/tag/v1.0.0): the Vietnamese video (51 min) and the English video (33 min). The lecture slides (`Chapter *.pdf`) and the updated Vietnamese notes (`chuong3/4/5_*.pdf`) are included in the repository root.
+## Rebuilding the Vietnamese video
+```bash
+pip install manim vieneu soundfile numpy      # also needs ffmpeg and espeak-ng
+cd video/vi
+python generate_audio.py                      # VieNeu-TTS -> tts_wav/ (voice "Mai Anh")
+manim -qm s01_foundations.py Scene01Foundations   # repeat for s02..s06, then join the scenes with ffmpeg
+```
+Narration text lives in `narr_vi_*.json`; voice: [VieNeu-TTS](https://github.com/pnnbao97/VieNeu-TTS).
