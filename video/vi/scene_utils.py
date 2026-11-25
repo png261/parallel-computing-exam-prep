@@ -216,9 +216,10 @@ def _wrap_lines(s: str, width: int) -> list[str]:
 
 
 def play_drill(scene: Scene, key: str, item: dict, mod_label: str, num: int, total: int):
-    """On-screen exam drill: question + 4 options -> 5 s countdown -> reveal answer + reason."""
+    """Game-style exam drill: mascot thinks while you answer, cheers on the reveal (+10 XP)."""
+    from fun_utils import make_mascot, bounce
     hdr = make_header(f"Bài luyện thi {num}/{total}: Tạm dừng & trả lời", mod_label, CORAL)
-    q_card = make_card("Câu hỏi", _wrap_lines(item["q"], 92), width=12.4, accent=AMBER,
+    q_card = make_card("Câu hỏi", _wrap_lines(item["q"], 80), width=10.6, accent=AMBER,
                        title_size=17, body_size=19).move_to(UP * 1.75)
     opts = VGroup()
     for i, o in enumerate(item["opts"]):
@@ -232,8 +233,9 @@ def play_drill(scene: Scene, key: str, item: dict, mod_label: str, num: int, tot
     opts.arrange_in_grid(rows=2, cols=2, buff=(0.3, 0.22))
     opts.next_to(q_card, DOWN, buff=0.3)
 
+    mascot = make_mascot("think", scale=0.62).move_to(RIGHT * 6.0 + UP * 1.75)
     play_voiced(scene, f"{key}_q", [
-        ([FadeIn(hdr), FadeIn(q_card, shift=DOWN * 0.1)], 0.9),
+        ([FadeIn(hdr), FadeIn(q_card, shift=DOWN * 0.1), FadeIn(mascot, shift=LEFT * 0.3)], 0.9),
         ([LaggedStart(*[FadeIn(o, shift=UP * 0.1) for o in opts], lag_ratio=0.25)], 1.4),
     ])
 
@@ -249,6 +251,9 @@ def play_drill(scene: Scene, key: str, item: dict, mod_label: str, num: int, tot
         scene.play(Transform(num_t, new_t), run_time=0.25)
         scene.wait(0.75)
     scene.play(FadeOut(ring), FadeOut(num_t), FadeOut(lbl), run_time=0.3)
+    happy = make_mascot("cheer", scale=0.62).move_to(mascot.get_center())
+    xp_t = Text(f"+10 XP", font=MONO, font_size=22, weight=BOLD, color=AMBER).next_to(happy, DOWN, buff=0.45)
+    scene.play(Transform(mascot, happy), FadeIn(xp_t, shift=UP * 0.2), run_time=0.4)
 
     ans = item["ans"]
     reveal = []
@@ -261,7 +266,7 @@ def play_drill(scene: Scene, key: str, item: dict, mod_label: str, num: int, tot
                          accent=EMERALD, title_size=17, body_size=15).to_edge(DOWN, buff=0.22)
     play_voiced(scene, f"{key}_a", [
         (reveal, 0.8),
-        ([FadeIn(exp_card, shift=UP * 0.1)], 0.8),
+        ([FadeIn(exp_card, shift=UP * 0.1), bounce(mascot)], 0.8),
     ])
     clear_stage(scene)
 
@@ -274,3 +279,12 @@ def play_module_drills(scene: Scene, mod: str, mod_label: str):
     items = DRILLS.get(mod, [])
     for i, item in enumerate(items):
         play_drill(scene, f"d{mod}_{i + 1}", item, mod_label, i + 1, len(items))
+    if items:
+        from fun_utils import make_mascot, level_banner, bounce
+        lv = {"M1": 1, "M2": 2, "M3": 3, "M4": 4}.get(mod, 1)
+        m = make_mascot("cheer", scale=1.3).move_to(LEFT * 3.6)
+        b = level_banner(f"Hoàn thành Màn {lv}!", f"Tự chấm: {len(items)} câu đúng = {10 * len(items)} XP").move_to(RIGHT * 1.6)
+        scene.play(FadeIn(m, shift=UP * 0.3), FadeIn(b, shift=LEFT * 0.3), run_time=0.8)
+        scene.play(bounce(m, 0.35, 0.6), run_time=0.6)
+        scene.wait(2.0)
+        clear_stage(scene)

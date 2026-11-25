@@ -60,81 +60,194 @@ def dot(color, r=0.08):
     return Dot(radius=r, color=color)
 
 
+from fun_utils import make_mascot, make_bubble, make_hud, bounce
+
+MPOS = P(5.8, -2.65)
+
+
+def mas(mood="happy", color=CYAN, pos=MPOS, scale=0.55):
+    return make_mascot(mood, scale, color).move_to(pos)
+
+
+class Hop(Animation):
+    """Little hop that reads the mascot's position when it starts (safe after moves)."""
+
+    def __init__(self, mob, h=0.25, **kw):
+        self.h = h
+        self.base = None
+        super().__init__(mob, **kw)
+
+    def begin(self):
+        self.base = self.mobject.get_center().copy()
+        super().begin()
+
+    def interpolate_mobject(self, alpha):
+        self.mobject.move_to(self.base + UP * self.h * np.sin(PI * alpha))
+
+
+class Mood:
+    """Tracks the mascot on stage so we can swap its mood with one animation."""
+
+    def __init__(self, mood="happy", color=CYAN, pos=MPOS, scale=0.55):
+        self.color, self.scale = color, scale
+        self.m = mas(mood, color, pos, scale)
+
+    def to(self, mood, pos=None):
+        new = make_mascot(mood, self.scale, self.color).move_to(self.m.get_center() if pos is None else pos)
+        if mood == "sad":
+            new[4].rotate(PI)  # fun_utils draws the "sad" mouth as a smile; flip it into a frown
+        a = ReplacementTransform(self.m, new)
+        self.m = new
+        return a
+
+    def hop(self, h=0.25, rt=0.5):
+        return Hop(self.m, h, run_time=rt)
+
+
+def say(text, color=CYAN, w=5.4):
+    b = make_bubble(text, w, color, 18)
+    b.move_to(P(MPOS[0] - 0.62 - b.width / 2, MPOS[1]))
+    return b
+
+
+def chot(term, color=AMBER, lead="CHỐT"):
+    tag = T(lead, 15, BGC, bold=True)
+    pill = RoundedRectangle(width=tag.width + 0.35, height=0.38, corner_radius=0.19,
+                            fill_color=color, fill_opacity=1, stroke_width=0)
+    tag.move_to(pill)
+    t = T(term, 19, color, bold=True, maxw=8.0)
+    g = VGroup(VGroup(pill, tag), t).arrange(RIGHT, buff=0.25)
+    bg = bx(g.width + 0.5, 0.72, color, sw=2.2, r=0.2).move_to(g)
+    return VGroup(bg, g).move_to(P(-1.0, MPOS[1]))
+
+
+def person(x, y, color=CYAN, r=0.2, mood="happy", hat=False):
+    body = RoundedRectangle(width=r * 2.0, height=r * 1.0, corner_radius=r * 0.4, fill_color=color,
+                            fill_opacity=0.85, stroke_width=0).move_to(P(x, y - r * 1.45))
+    face = Circle(r, color=color, fill_color=PANEL_BG, fill_opacity=1, stroke_width=2.5).move_to(P(x, y))
+    eyes = VGroup(*[Dot(radius=r * 0.12, color=TEXT_MAIN).move_to(P(x + dx * r, y + r * 0.2)) for dx in (-0.4, 0.4)])
+    if mood == "sad":
+        mouth = Arc(radius=r * 0.4, start_angle=PI * 0.15, angle=PI * 0.7, color=TEXT_MAIN, stroke_width=2.5)
+        mouth.move_to(P(x, y - r * 0.42))
+    else:
+        mouth = Arc(radius=r * 0.45, start_angle=PI * 1.15, angle=PI * 0.7, color=TEXT_MAIN, stroke_width=2.5)
+        mouth.move_to(P(x, y - r * 0.28))
+    g = VGroup(body, face, eyes, mouth)
+    if hat:
+        g.add(Rectangle(width=r * 1.2, height=r * 0.4, fill_color=TEXT_MAIN, fill_opacity=1, stroke_width=0).move_to(P(x, y + r * 1.05)))
+        g.add(Circle(r * 0.5, fill_color=TEXT_MAIN, fill_opacity=1, stroke_width=0).move_to(P(x, y + r * 1.45)))
+    return g
+
+
+def chips(pairs, poss, w=3.9, h=0.8):
+    """Mapping chips: analogy part -> technical term (colour-coded)."""
+    out = []
+    for (a, b, col), (cx, cy) in zip(pairs, poss):
+        bg = bx(w, h, col, sw=1.8, r=0.15).move_to(P(cx, cy))
+        ta = T(a, 15, TEXT_MAIN, maxw=w - 0.5).move_to(P(cx, cy + 0.2))
+        tb = T("→ " + b, 16, col, bold=True, maxw=w - 0.5).move_to(P(cx, cy - 0.18))
+        out.append(VGroup(bg, ta, tb))
+    return out
+
+
+def card(x, y, col, w=0.5, h=0.3):
+    r = RoundedRectangle(width=w, height=h, corner_radius=0.06, fill_color=col, fill_opacity=0.9, stroke_width=0).move_to(P(x, y))
+    ls = VGroup(*[Line(P(x - w * 0.3, y + dy), P(x + w * 0.3, y + dy), color=BGC, stroke_width=2) for dy in (h * 0.18, -h * 0.18)])
+    return VGroup(r, ls)
+
+
+def crate(x, y, col=CYAN, s=0.3):
+    return Square(s, color=col, fill_color=col, fill_opacity=0.75, stroke_width=2).move_to(P(x, y))
+
+
+
 class Scene01Foundations(Scene):
     def construct(self):
         setup_bg(self)
         self.s01()
         self.s02()
         self.s03()
+        self.s31()
         self.s04()
+        self.s32()
         self.s05()
         self.s06()
+        self.s30()
         self.s14()
         self.s15()
         self.s16()
         self.s07()
         self.s17()
         self.s11()
+        self.s33()
         self.s18()
+        self.s35()
         self.s19()
+        self.s34()
         self.s20()
         self.s21()
         play_module_drills(self, "M1", "Ch 1, 2")
 
     # ------------------------------------------------------------ 01_01
     def s01(self):
-        title = T("Tính toán song song & HPC", 42, CYAN, bold=True).move_to(P(0, 2.7))
-        sub = T("Ôn thi chuyên sâu", 20, TEXT_MUTED).next_to(title, DOWN, buff=0.12)
+        title = T("Bản đồ ôn thi: 4 màn + Boss", 36, CYAN, bold=True).move_to(P(-2.4, 2.4))
+        sub = T("Tính toán song song & HPC", 18, TEXT_MUTED).next_to(title, DOWN, buff=0.1)
+        hud0 = make_hud(0, 0, 1).move_to(P(5.2, 2.4))
+        nodes_p = [P(-4.9, -1.1), P(-2.5, -0.2), P(-0.1, -1.1), P(2.3, -0.2)]
+        boss_p = P(4.9, -1.1)
+        pts = [P(-6.4, -0.6)] + nodes_p + [boss_p]
+        path = VMobject().set_points_smoothly(pts).set_stroke(BORDER_DIM, 12)
+        dash = DashedVMobject(VMobject().set_points_smoothly(pts).set_stroke(TEXT_MUTED, 3), num_dashes=70)
+        cols = [CYAN, AMBER, EMERALD, VIOLET]
+        names = [("Màn 1", "Nền tảng · Ch 1–2"), ("Màn 2", "C++ threads + OpenMP"), ("Màn 3", "MPI"), ("Màn 4", "CUDA")]
+        nds, labs = [], VGroup()
+        for i, (p, c, (a, b)) in enumerate(zip(nodes_p, cols, names)):
+            d = Circle(0.32, color=c, fill_color=PANEL_BG, fill_opacity=1, stroke_width=4).move_to(p)
+            nds.append(VGroup(d, T(str(i + 1), 22, c, bold=True).move_to(p)))
+            dy = -0.62 if i % 2 == 0 else -0.62
+            labs.add(VGroup(T(a, 18, c, bold=True).move_to(p + DOWN * 0.62), T(b, 15, TEXT_MAIN, maxw=2.3).move_to(p + DOWN * 0.92)))
+        boss = VGroup(Star(n=8, outer_radius=0.62, inner_radius=0.46, fill_color=CORAL, fill_opacity=0.9, stroke_color=TEXT_MAIN, stroke_width=3),
+                      T("BOSS", 16, BGC, bold=True)).move_to(boss_p)
+        boss_l = VGroup(T("Luyện đề", 18, CORAL, bold=True).move_to(boss_p + DOWN * 0.95),
+                        T("đề mô phỏng", 14, TEXT_MUTED).move_to(boss_p + DOWN * 1.25))
+        b1 = VGroup(bx(3.9, 0.5, AMBER, sw=2, r=0.2), T("40–60 trắc nghiệm + 1–2 tự luận", 16, AMBER, bold=True, maxw=3.7))
+        b2 = VGroup(bx(2.0, 0.5, CYAN, sw=2, r=0.2), T("60–70 phút", 16, CYAN, bold=True, maxw=1.8))
+        b3 = VGroup(bx(4.2, 0.5, EMERALD, sw=2, r=0.2), T("đóng tài liệu · máy tính bỏ túi", 16, EMERALD, bold=True, maxw=4.0))
+        for b in (b1, b2, b3):
+            b[1].move_to(b[0])
+        badges = VGroup(b1, b2, b3).arrange(RIGHT, buff=0.3).move_to(P(0, 1.35))
+        mo = Mood("happy", CYAN, nodes_p[0] + UP * 0.68, 0.4)
+        hud = [hud0]
 
-        def chip(cx, color, icon, big, small, bigsize=38):
-            b = bx(3.5, 2.5, color, sw=2).move_to(P(cx, 0.3))
-            icon.move_to(P(cx, 1.05))
-            bt = T(big, bigsize, color, bold=True, maxw=3.1).move_to(P(cx, 0.25))
-            st = T(small, 18, TEXT_MAIN, maxw=3.1).move_to(P(cx, -0.5))
-            return VGroup(b, icon, bt, st)
+        def hud_to(xp, lv):
+            new = make_hud(xp, 0, lv).move_to(P(5.2, 2.4))
+            a = ReplacementTransform(hud[0], new)
+            hud[0] = new
+            return a
 
-        # icon 1: question list
-        ic1 = VGroup(*[VGroup(Square(0.16, color=AMBER, stroke_width=2),
-                              Line(LEFT * 0.1, RIGHT * 0.4, color=TEXT_MUTED, stroke_width=2).shift(RIGHT * 0.38))
-                       for _ in range(3)]).arrange(DOWN, buff=0.1)
-        ic1.scale(0.9)
-        # icon 2: clock
-        ic2 = VGroup(Circle(0.34, color=CYAN, stroke_width=3),
-                     Line(ORIGIN, UP * 0.24, color=CYAN, stroke_width=3),
-                     Line(ORIGIN, RIGHT * 0.17, color=CYAN, stroke_width=3))
-        # icon 3: calculator
-        keys = VGroup(*[Square(0.12, color=EMERALD, fill_opacity=0.8, stroke_width=0) for _ in range(6)]
-                      ).arrange_in_grid(rows=2, cols=3, buff=0.08)
-        scr = Rectangle(width=0.5, height=0.14, color=EMERALD, stroke_width=2)
-        ic3 = VGroup(scr, keys).arrange(DOWN, buff=0.08)
-        ic3 = VGroup(bx(0.7, 0.8, EMERALD, sw=2, r=0.06).move_to(ic3), ic3)
+        def arrive(i):
+            return ([mo.m.animate.move_to(nodes_p[i] + UP * 0.68)], 0.8)
 
-        c1 = chip(-4.1, AMBER, ic1, "40–60", "câu trắc nghiệm + 1–2 tự luận")
-        c2 = chip(0, CYAN, ic2, "60–70", "phút")
-        c3 = chip(4.1, EMERALD, ic3, "Đóng sách", "chỉ máy tính bỏ túi", 30)
-
-        names = ["Nền tảng", "Threads + OpenMP", "MPI", "CUDA", "Luyện đề"]
-        cols = [CYAN, AMBER, EMERALD, VIOLET, TEXT_MAIN]
-        xs = np.linspace(-4.6, 4.6, 5)
-        line = Line(P(-5.6, -2.1), P(5.6, -2.1), color=BORDER_DIM, stroke_width=3)
-        nodes = VGroup(); labs = VGroup()
-        for i, (n, c, x) in enumerate(zip(names, cols, xs)):
-            d = Circle(0.24, color=c, fill_color=PANEL_BG, fill_opacity=1, stroke_width=3).move_to(P(x, -2.1))
-            num = T(str(i + 1), 16, c, bold=True).move_to(d)
-            nodes.add(VGroup(d, num))
-            labs.add(T(n, 18, TEXT_MAIN, maxw=2.1).move_to(P(x, -2.75)))
-        token = Dot(radius=0.13, color=AMBER).move_to(P(xs[0], -2.1))
-
+        def visit(i, badge=None):
+            anims = [nds[i][0].animate.set_fill(cols[i], opacity=0.45), hud_to(100 * (i + 1), min(i + 1, 4))]
+            if badge is not None:
+                anims.append(FadeIn(badge, shift=DOWN * 0.15))
+            return (anims, 1.3)
         steps = [
-            ([FadeIn(title, shift=UP * 0.2), FadeIn(sub)], 1.2),
-            ([FadeIn(c1, shift=UP * 0.2)], 2.2),
-            ([FadeIn(c2, shift=UP * 0.2)], 2.2),
-            ([FadeIn(c3, shift=UP * 0.2)], 2.2),
-            ([Create(line), FadeIn(nodes), FadeIn(labs), FadeIn(token)], 1.5),
+            ([FadeIn(title, shift=UP * 0.2), FadeIn(sub), FadeIn(hud0)], 1.4),
+            ([FadeIn(path), Create(dash)], 1.8),
+            ([LaggedStart(*[FadeIn(n, scale=0.5) for n in nds], lag_ratio=0.25), FadeIn(labs)], 2.0),
+            ([FadeIn(boss, scale=0.5), FadeIn(boss_l)], 1.2),
+            ([FadeIn(mo.m, shift=DOWN * 0.3)], 0.6),
+            ([mo.hop()], 0.5),
+            visit(0, b1),
+            arrive(1), ([mo.hop()], 0.5), visit(1, b2),
+            arrive(2), ([mo.hop()], 0.5), visit(2, b3),
+            arrive(3), ([mo.hop()], 0.5), visit(3),
+            ([mo.m.animate.move_to(boss_p + UP * 0.95)], 0.9),
+            ([mo.to("wow", boss_p + UP * 0.95), Indicate(boss, color=AMBER, scale_factor=1.2), FadeIn(say("Boss cuối: luyện đề! Sẵn sàng chưa?", CORAL).shift(DOWN * 0.4 + LEFT * 0.3))], 1.6),
+            ([mo.hop(0.35, 0.6)], 0.6),
         ]
-        for i in range(1, 5):
-            steps.append(([token.animate.move_to(P(xs[i], -2.1)),
-                           nodes[i][0].animate.set_fill(cols[i], opacity=0.35)], 1.3))
         play_voiced(self, "01_01", steps)
         clear_stage(self)
 
@@ -908,15 +1021,18 @@ class Scene01Foundations(Scene):
         chips = VGroup(T("O: chặn trên", 15, CORAL, bold=True), T("Ω: chặn dưới", 15, CYAN, bold=True),
                        T("Θ: cả hai", 15, AMBER, bold=True)).arrange(RIGHT, buff=0.35).move_to(P(cl, -2.0))
         note = T("thường quan tâm O(n)", 14, TEXT_MUTED).move_to(P(cl, -2.5))
-        ttl = T("Kết quả cần nhớ", 18, EMERALD, bold=True).move_to(P(cr, 2.15))
-        rows = [("cộng 2 vector", "O(1)", "EREW"), ("tổng n số", "O(log n)", "EREW"), ("Boolean AND", "O(1)", "CRCW"),
-                ("broadcast", "O(log n)", "EREW"), ("xếp hạng DS", "O(log n)", "EREW"), ("trộn 2 mảng", "O(log n)", "chia nhóm")]
+        ttl = T("Số bước song song (ví dụ n = 8)", 18, EMERALD, bold=True, maxw=5.4).move_to(P(cr, 2.15))
+        rows = [("cộng 2 vector", "O(1)", 1, EMERALD, "EREW"), ("Boolean AND", "O(1)", 1, EMERALD, "CRCW"),
+                ("tổng n số", "O(log n)", 3, AMBER, "EREW"), ("broadcast", "O(log n)", 3, AMBER, "EREW"),
+                ("xếp hạng DS", "O(log n)", 3, AMBER, "EREW"), ("trộn 2 mảng", "O(log n)", 3, AMBER, "chia nhóm")]
         trs = []
-        for i, (nm, cx_, mc) in enumerate(rows):
+        for i, (nm, cx_, k, col, mc) in enumerate(rows):
             y = 1.5 - 0.72 * i
-            trs.append(VGroup(T(nm, 17, TEXT_MAIN, maxw=2.2).move_to(P(cr - 2.9, y), aligned_edge=LEFT),
-                              T(cx_, 18, AMBER, mono=True, bold=True).move_to(P(cr + 0.5, y)),
-                              T(mc, 14, VIOLET, maxw=1.5).move_to(P(cr + 2.3, y))))
+            sq = VGroup(*[Square(0.4, color=col, fill_color=col, fill_opacity=0.75, stroke_width=2) for _ in range(k)]
+                        ).arrange(RIGHT, buff=0.06).move_to(P(cr - 0.85, y), aligned_edge=LEFT)
+            trs.append(VGroup(T(nm, 16, TEXT_MAIN, maxw=1.9).move_to(P(cr - 2.9, y), aligned_edge=LEFT), sq,
+                              T(cx_, 16, col, mono=True, bold=True).move_to(P(cr + 1.15, y)),
+                              T(mc, 13, VIOLET, maxw=1.3).move_to(P(cr + 2.4, y))))
         steps = [
             ([FadeIn(hdr), FadeIn(pl), FadeIn(pr)], 1.0),
             ([Create(ax), Create(Tn), FadeIn(tT)], 2.0),
@@ -925,6 +1041,334 @@ class Scene01Foundations(Scene):
             ([FadeIn(ttl)], 0.6),
         ]
         for r in trs:
-            steps.append(([FadeIn(r, shift=LEFT * 0.15)], 1.0))
+            steps.append(([FadeIn(r[0]), FadeIn(r[2]), FadeIn(r[3]), LaggedStart(*[GrowFromEdge(q_, LEFT) for q_ in r[1]], lag_ratio=0.3)], 1.0))
         play_voiced(self, "01_21", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_30 (fun)
+    def s30(self):
+        hdr = make_header("Chuyện vui: nấu mì và định luật Amdahl", "Chuyện vui", CORAL)
+        x0, y1, y2 = -4.7, 1.85, 0.7
+        chef1 = person(-5.75, y1 + 0.1, EMERALD, 0.2, hat=True)
+        lab1 = T("1 đầu bếp", 13, TEXT_MUTED).move_to(P(-5.75, y1 - 0.55))
+        sA = rect_at(x0, y1, 0.9, 0.55, CORAL, 0.75)
+        pA = rect_at(x0 + 0.9, y1, 5.1, 0.55, CYAN, 0.6)
+        n1 = T("đun nước 0.15", 13, CORAL).move_to(P(x0 + 0.45, y1 + 0.5))
+        n2 = T("thái rau 0.85", 13, CYAN).move_to(P(x0 + 3.4, y1 + 0.5))
+        one = T("1×", 24, AMBER, bold=True).move_to(P(2.3, y1))
+        crowd = VGroup(*[Circle(0.075, color=EMERALD, fill_color=PANEL_BG, fill_opacity=1, stroke_width=2) for _ in range(17)])
+        crowd.arrange_in_grid(rows=3, cols=6, buff=0.1).move_to(P(-5.75, y2 + 0.05))
+        lab2 = T("17 đầu bếp", 13, TEXT_MUTED).move_to(P(-5.75, y2 - 0.55))
+        sB = rect_at(x0, y2, 0.9, 0.55, CORAL, 0.75)
+        pBf = rect_at(x0 + 0.9, y2, 5.1, 0.55, CYAN, 0.6)
+        pBs = rect_at(x0 + 0.9, y2, 0.3, 0.55, CYAN, 0.6)
+        tpB = T("0.85 / 17 = 0.05", 14, CYAN).move_to(P(x0 + 1.35, y2), aligned_edge=LEFT)
+        q = T("?", 64, AMBER, bold=True).move_to(P(2.6, y2))
+        res = T("S = 1 / 0.20 = 5×", 28, EMERALD, bold=True, maxw=3.8).move_to(P(0.6, y2), aligned_edge=LEFT)
+        lim = T("giới hạn 1 / (1 − P) = 6.67×", 18, CORAL, bold=True, maxw=4.6).move_to(P(-1.2, -0.25), aligned_edge=LEFT)
+        mo = Mood("happy")
+        ch = chips([("nước sôi, không chia được", "phần tuần tự 0.15", CORAL),
+                    ("thái rau, chia cho nhiều người", "phần song song P", CYAN),
+                    ("số đầu bếp", "số bộ xử lý N", EMERALD)], [(-4.2, -1.4), (0.0, -1.4), (4.2, -1.4)])
+        b1 = say("Đoán thử! 17 đầu bếp nhanh gấp mấy lần?", AMBER)
+        b2 = say("Đúng rồi! Gấp 5 lần.", EMERALD, 4.0)
+        b3 = say("Nồi nước vẫn sôi 0.15, không chia được!", CORAL)
+        ck = chot("Amdahl: phần tuần tự chặn tốc độ tối đa", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(chef1), FadeIn(lab1), GrowFromEdge(sA, LEFT), GrowFromEdge(pA, LEFT), FadeIn(n1), FadeIn(n2), FadeIn(one)], 2.6),
+            ([FadeIn(crowd), FadeIn(lab2), FadeIn(sB), FadeIn(pBf), FadeIn(mo.m)], 1.8),
+            ([mo.to("think"), FadeIn(q), FadeIn(b1)], 1.2),
+            ([Wait(3)], 3.0),
+            ([FadeOut(q), ReplacementTransform(pBf, pBs), FadeIn(tpB), mo.to("cheer"), FadeOut(b1), FadeIn(b2)], 1.6),
+            ([mo.hop(), FadeIn(res, shift=UP * 0.1)], 1.2),
+            ([mo.to("sad"), FadeOut(b2), FadeIn(b3), FadeIn(lim), Indicate(VGroup(sA, sB), color=CORAL, scale_factor=1.3)], 2.2),
+            ([FadeOut(b3), FadeIn(ch[0]), Indicate(VGroup(sA, sB), color=AMBER)], 1.8),
+            ([FadeIn(ch[1]), Indicate(VGroup(pA, pBs), color=AMBER)], 1.8),
+            ([FadeIn(ch[2]), Indicate(crowd, color=AMBER)], 1.8),
+            ([FadeIn(ck), mo.to("happy")], 1.5),
+        ]
+        play_voiced(self, "01_30", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_31 (fun)
+    def s31(self):
+        hdr = make_header("Chuyện vui: nhà máy của Flynn", "Chuyện vui", CORAL)
+        cxs = [-4.95, -1.65, 1.65, 4.95]
+        cols = [CYAN, AMBER, EMERALD, VIOLET]
+        pans = VGroup(*[panel(c, 0.4, 3.15, 4.2) for c in cxs])
+        names = ["SISD", "SIMD", "MISD", "MIMD"]
+        subs = ["1 thẻ · 1 thợ · 1 món", "1 thẻ chung · nhiều món", "nhiều thẻ · 1 món", "nhiều thẻ · nhiều món"]
+        titles = VGroup(*[T(n, 22, col, bold=True).move_to(P(c, 2.15)) for n, col, c in zip(names, cols, cxs)])
+        stl = VGroup(*[T(s, 12, TEXT_MUTED, maxw=2.9).move_to(P(c, 1.8)) for s, c in zip(subs, cxs)])
+        wy, cy_, dy = 0.2, 1.15, -0.85
+
+        def ws(c, offs, col=TEXT_MAIN):
+            return [person(c + o, wy, col, 0.17) for o in offs]
+
+        def link(a, b, col, sw=1.8):
+            return Line(a, b, color=col, stroke_width=sw)
+        # SISD
+        c = cxs[0]
+        w0 = ws(c, [0], CYAN)
+        g0 = VGroup(card(c, cy_, AMBER), link(P(c, cy_ - 0.17), P(c, wy + 0.22), AMBER), *w0,
+                    link(P(c, wy - 0.46), P(c, dy + 0.17), CYAN), crate(c, dy))
+        # SIMD
+        c = cxs[1]
+        offs = [-1.05, -0.35, 0.35, 1.05]
+        w1 = ws(c, offs, CYAN)
+        top = card(c, cy_ + 0.2, AMBER, 1.0, 0.36)
+        g1 = VGroup(top, *[link(P(c, cy_ + 0.02), P(c + o, wy + 0.22), AMBER) for o in offs], *w1,
+                    *[link(P(c + o, wy - 0.46), P(c + o, dy + 0.17), CYAN) for o in offs],
+                    *[crate(c + o, dy) for o in offs])
+        # MISD
+        c = cxs[2]
+        offs = [-0.85, 0, 0.85]
+        cc = [AMBER, CORAL, VIOLET]
+        w2 = ws(c, offs, EMERALD)
+        g2 = VGroup(*[card(c + o, cy_, k) for o, k in zip(offs, cc)],
+                    *[link(P(c + o, cy_ - 0.17), P(c + o, wy + 0.22), k) for o, k in zip(offs, cc)], *w2,
+                    *[link(P(c + o, wy - 0.46), P(c, dy + 0.17), CYAN) for o in offs], crate(c, dy))
+        # MIMD
+        c = cxs[3]
+        offs = [-1.05, -0.35, 0.35, 1.05]
+        cc = [AMBER, CORAL, VIOLET, EMERALD]
+        w3 = ws(c, offs, VIOLET)
+        g3 = VGroup(*[card(c + o, cy_, k) for o, k in zip(offs, cc)],
+                    *[link(P(c + o, cy_ - 0.17), P(c + o, wy + 0.22), k) for o, k in zip(offs, cc)], *w3,
+                    *[link(P(c + o, wy - 0.46), P(c + o, dy + 0.17), CYAN) for o in offs],
+                    *[crate(c + o, dy) for o in offs])
+        mo = Mood("happy")
+        b1 = say("Một lệnh, cả đội làm đồng loạt!", AMBER, 4.6)
+        ch = chips([("thẻ lệnh", "luồng lệnh (Instruction)", AMBER), ("món hàng", "luồng dữ liệu (Data)", CYAN),
+                    ("quản đốc hô chung", "SIMD: lockstep", EMERALD)],
+                   [(-4.9, -2.3), (-1.5, -2.3), (1.9, -2.3)], w=3.3, h=0.75)
+        ck = chot("Flynn: luồng lệnh × luồng dữ liệu = 4 loại", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(pans), FadeIn(titles), FadeIn(stl), FadeIn(mo.m)], 1.4),
+            ([FadeIn(g0)], 2.2),
+            ([FadeIn(g1)], 2.0),
+            ([mo.to("wow"), FadeIn(b1), Indicate(VGroup(*w1), color=AMBER, scale_factor=1.25)], 1.8),
+            ([FadeOut(b1), mo.to("happy"), FadeIn(g2)], 2.2),
+            ([FadeIn(g3)], 1.6),
+            ([LaggedStart(*[Indicate(w, color=AMBER, scale_factor=1.3) for w in w3], lag_ratio=0.35)], 1.8),
+            ([FadeIn(ch[0]), Indicate(VGroup(*[m for m in g3[:4]]), color=AMBER)], 1.5),
+            ([FadeIn(ch[1]), Indicate(VGroup(*[m for m in g3[-4:]]), color=CYAN)], 1.5),
+            ([FadeIn(ch[2]), Indicate(top, color=EMERALD, scale_factor=1.3)], 1.5),
+            ([FadeOut(VGroup(*ch)), FadeIn(ck), mo.hop()], 1.5),
+        ]
+        play_voiced(self, "01_31", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_32 (fun)
+    def s32(self):
+        hdr = make_header("Chuyện vui: bảng trắng chung và sổ riêng", "Chuyện vui", CORAL)
+        cl, cr = -3.3, 3.3
+        pl, pr = panel(cl, 0.7, 6.2, 3.8), panel(cr, 0.7, 6.2, 3.8)
+        tl = T("Bảng trắng chung", 20, CYAN, bold=True).move_to(P(cl, 2.25))
+        tr_ = T("Mỗi người một sổ riêng", 20, EMERALD, bold=True).move_to(P(cr, 2.25))
+        board = bx(2.6, 0.95, TEXT_MAIN, sw=3, r=0.1).move_to(P(cl, 1.2))
+        btxt = T("x = 5", 26, AMBER, mono=True, bold=True).move_to(board)
+        bq = T("x = ?", 26, CORAL, mono=True, bold=True).move_to(board)
+        offl = [-2.1, -0.7, 0.7, 2.1]
+        pls = [person(cl + o, 0.0, CYAN, 0.22) for o in offl]
+        pls_sad = [person(cl + o, 0.0, CORAL, 0.22, "sad") for o in offl[1:3]]
+        al = [arr((cl + o, 0.3), (cl + o * 0.55, 0.72), CYAN, sw=2.5, tip=0.1) for o in offl]
+        offr = [-2.25, -0.75, 0.75, 2.25]
+        prs = VGroup(*[person(cr + o, 0.0, EMERALD, 0.22) for o in offr])
+        nbs = VGroup()
+        for o in offr:
+            nb = bx(0.75, 0.55, EMERALD, sw=2, r=0.06).move_to(P(cr + o, 0.95))
+            ln = VGroup(*[Line(P(cr + o - 0.22, 0.95 + d), P(cr + o + 0.22, 0.95 + d), color=TEXT_MUTED, stroke_width=1.5) for d in (0.1, -0.05, -0.2 + 0.1)])
+            nbs.add(VGroup(nb, ln))
+        paper = Rectangle(width=0.3, height=0.22, fill_color=AMBER, fill_opacity=1, stroke_width=0).move_to(P(cr - 2.25, 1.35))
+        route = ArcBetweenPoints(P(cr - 2.25, 1.35), P(cr + 2.25, 1.35), angle=-0.7)
+        snd = T("send", 14, AMBER, bold=True).move_to(P(cr - 2.25, -0.65))
+        rcv = T("recv", 14, EMERALD, bold=True).move_to(P(cr + 2.25, -0.65))
+        mo = Mood("happy")
+        b1 = say("Úi! Hai người ghi cùng lúc, bảng lộn xộn!", CORAL)
+        b2 = say("Muốn chia sẻ? Gửi giấy nhắn thôi!", EMERALD, 4.6)
+        ch = chips([("bảng trắng chung", "shared memory", CYAN), ("hai người cùng ghi một chỗ", "race condition", CORAL),
+                    ("sổ riêng + giấy nhắn", "distributed · MPI send/recv", EMERALD)],
+                   [(-4.2, -1.65), (0.0, -1.65), (4.2, -1.65)], h=0.75)
+        ck = chot("Shared vs distributed memory: dùng chung, hay gửi thông điệp", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(pl), FadeIn(pr), FadeIn(tl), FadeIn(tr_), FadeIn(mo.m)], 1.2),
+            ([FadeIn(board), FadeIn(btxt), FadeIn(VGroup(*pls)), Create(VGroup(*al))], 2.0),
+            ([al[1].animate.set_color(CORAL), al[2].animate.set_color(CORAL)], 0.8),
+            ([ReplacementTransform(btxt, bq), ReplacementTransform(pls[1], pls_sad[0]), ReplacementTransform(pls[2], pls_sad[1]),
+              Indicate(board, color=CORAL, scale_factor=1.15), mo.to("sad"), FadeIn(b1)], 1.8),
+            ([FadeIn(prs), FadeIn(nbs)], 1.6),
+            ([FadeOut(b1), mo.to("happy"), FadeIn(b2), FadeIn(snd), FadeIn(rcv), FadeIn(paper)], 1.0),
+            ([MoveAlongPath(paper, route)], 2.0),
+            ([FadeOut(b2), FadeIn(ch[0]), Indicate(board, color=CYAN)], 1.6),
+            ([FadeIn(ch[1]), Indicate(bq, color=CORAL)], 1.6),
+            ([FadeIn(ch[2]), Indicate(paper, color=AMBER, scale_factor=1.8)], 1.6),
+            ([FadeOut(VGroup(*ch)), FadeIn(ck), mo.hop()], 1.5),
+        ]
+        play_voiced(self, "01_32", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_33 (fun)
+    def s33(self):
+        hdr = make_header("Chuyện vui: giải đấu cộng cặp", "Chuyện vui", CORAL)
+        vals = [[3, 1, 4, 1, 5, 9, 2, 6]]
+        for _ in range(3):
+            v = vals[-1]
+            vals.append([v[2 * i] + v[2 * i + 1] for i in range(len(v) // 2)])
+        xs = [-5.2, -3.3, -1.4, 0.5]
+        ys = [[2.0 - 0.55 * i for i in range(8)]]
+        for _ in range(3):
+            p = ys[-1]
+            ys.append([(p[2 * i] + p[2 * i + 1]) / 2 for i in range(len(p) // 2)])
+        cols = [CYAN, EMERALD, EMERALD, AMBER]
+        lv = [VGroup(*[VGroup(Circle(0.21, color=cols[k], fill_color=PANEL_BG, fill_opacity=1, stroke_width=3),
+                              T(str(v), 15 if v < 10 else 14, TEXT_MAIN, bold=True)).move_to(P(xs[k], y))
+                       for v, y in zip(vals[k], ys[k])]) for k in range(4)]
+        for k in range(4):
+            for g in lv[k]:
+                g[1].move_to(g[0])
+        edges = []
+        for k in range(1, 4):
+            es = VGroup()
+            for j in range(len(vals[k])):
+                for q_ in (2 * j, 2 * j + 1):
+                    es.add(Line(lv[k - 1][q_].get_right(), lv[k][j].get_left(), color=TEXT_MUTED, stroke_width=2))
+            edges.append(es)
+        hdrs = [T(t_, 12, TEXT_MUTED).move_to(P(x, 2.5)) for t_, x in zip(["8 người", "vòng 1 · 4 CPU", "vòng 2 · 2 CPU", "vòng 3 · 1 CPU"], xs)]
+        q = T("?", 64, AMBER, bold=True).move_to(P(1.7, 0.1))
+        ans = VGroup(T("3 vòng", 30, AMBER, bold=True), T("= log₂ 8", 18, AMBER)).arrange(DOWN, buff=0.08).move_to(P(1.7, 0.1))
+        tot = T("tổng 31", 14, AMBER, bold=True).next_to(lv[3][0], DOWN, buff=0.12)
+        mo = Mood("happy")
+        b1 = say("Đoán thử! 8 số, mỗi vòng cộng đôi: mấy vòng?", AMBER)
+        b2 = say("Ba vòng thôi, nhanh chưa!", EMERALD, 4.0)
+        ch = chips([("mỗi trận đấu", "một phép cộng (1 CPU)", CYAN), ("mỗi vòng đấu", "một bước song song", EMERALD),
+                    ("8 người, loại đôi", "log₂ 8 = 3 bước", AMBER)], [(4.5, 1.6), (4.5, 0.5), (4.5, -0.6)], w=3.8, h=0.9)
+        ck = chot("Parallel reduction: n số cần log₂ n bước (EREW)", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(hdrs[0]), LaggedStart(*[FadeIn(g, scale=0.5) for g in lv[0]], lag_ratio=0.1), FadeIn(mo.m)], 2.4),
+            ([mo.to("think"), FadeIn(q), FadeIn(b1)], 1.2),
+            ([Wait(3)], 3.0),
+            ([Create(edges[0]), FadeIn(hdrs[1]), LaggedStart(*[FadeIn(g, scale=0.5) for g in lv[1]], lag_ratio=0.2), FadeOut(b1), mo.to("happy")], 2.0),
+            ([Create(edges[1]), FadeIn(hdrs[2]), LaggedStart(*[FadeIn(g, scale=0.5) for g in lv[2]], lag_ratio=0.2)], 1.8),
+            ([Create(edges[2]), FadeIn(hdrs[3]), FadeIn(lv[3][0], scale=0.5), FadeIn(tot)], 1.8),
+            ([FadeOut(q), FadeIn(ans), mo.to("cheer"), FadeIn(b2)], 1.2),
+            ([mo.hop(), Indicate(ans, color=EMERALD)], 0.8),
+            ([FadeOut(b2), FadeIn(ch[0]), Indicate(lv[1], color=AMBER)], 1.6),
+            ([FadeIn(ch[1]), Indicate(hdrs[1], color=AMBER)], 1.4),
+            ([FadeIn(ch[2])], 1.4),
+            ([FadeIn(ck)], 1.5),
+        ]
+        play_voiced(self, "01_33", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_34 (fun)
+    def s34(self):
+        hdr = make_header("Chuyện vui: xếp hàng hỏi khoảng cách", "Chuyện vui", CORAL)
+        n = 8
+        xs = [-4.55 + 1.3 * i for i in range(n)]
+        py, ry = 0.9, -0.15
+        ppl = VGroup(*[person(x, py, CYAN, 0.26) for x in xs])
+        tops = [P(x, py + 0.3) for x in xs]
+        rl = T("RANK", 14, TEXT_MUTED).move_to(P(-6.0, ry))
+        rank = [1] * n
+        nxt = [i + 1 if i + 1 < n else -1 for i in range(n)]
+        states = [(list(rank), list(nxt))]
+        for _ in range(3):
+            r2, n2 = list(rank), list(nxt)
+            for i in range(n):
+                if nxt[i] != -1:
+                    r2[i] = rank[i] + rank[nxt[i]]
+                    n2[i] = nxt[nxt[i]]
+            rank, nxt = r2, n2
+            states.append((list(rank), list(nxt)))
+
+        def rank_row(rk):
+            return VGroup(*[T(str(v), 22, AMBER, mono=True, bold=True).move_to(P(xs[i], ry)) for i, v in enumerate(rk)])
+
+        def arc_row(nx, col):
+            g = VGroup()
+            for i, j in enumerate(nx):
+                if j != -1:
+                    g.add(CurvedArrow(tops[i], tops[j], angle=-1.1, color=col, stroke_width=3, tip_length=0.14))
+            return g
+        rrows = [rank_row(s[0]) for s in states]
+        acol = [EMERALD, CYAN, VIOLET, EMERALD]
+        arows = [arc_row(s[1], acol[k]) for k, s in enumerate(states)]
+        cap = [T("ban đầu: ai cũng chỉ biết người ngay sau mình (nhảy 1)", 18, TEXT_MAIN, bold=True, maxw=10),
+               T("vòng 1: hỏi người mình trỏ tới, cộng vào, nhảy 2", 18, EMERALD, bold=True, maxw=10),
+               T("vòng 2: nhảy 4", 18, CYAN, bold=True, maxw=10),
+               T("vòng 3: xong! RANK = khoảng cách tới cuối hàng", 18, AMBER, bold=True, maxw=10)]
+        for t_ in cap:
+            t_.move_to(P(0, -0.85))
+        mo = Mood("happy")
+        b1 = say("Mỗi người hỏi: bạn cách cuối bao xa?", CYAN, 5.0)
+        ch = chips([("người đứng ngay sau mình", "NEXT", EMERALD), ("số người tới cuối hàng", "RANK", AMBER),
+                    ("cả hàng hỏi cùng lúc", "mỗi vòng nhảy gấp đôi", CYAN)],
+                   [(-4.2, -1.75), (0.0, -1.75), (4.2, -1.75)], h=0.75)
+        ck = chot("Pointer jumping: O(log n) vòng trên EREW (tuần tự: O(n))", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(ppl), FadeIn(rl), FadeIn(rrows[0]), FadeIn(arows[0]), FadeIn(cap[0]), FadeIn(mo.m)], 2.4),
+            ([mo.to("think"), FadeIn(b1)], 1.6),
+        ]
+        for k in (1, 2, 3):
+            anims = [FadeOut(rrows[k - 1]), FadeIn(rrows[k]), FadeOut(cap[k - 1]), FadeIn(cap[k]), FadeOut(arows[k - 1])]
+            if len(arows[k]) > 0:
+                anims.append(FadeIn(arows[k]))
+            if k == 1:
+                anims.append(FadeOut(b1))
+            steps.append((anims, 2.2))
+        steps += [
+            ([mo.to("cheer")], 1.0),
+            ([mo.hop(), FadeIn(ch[0]), Indicate(ppl[3], color=EMERALD, scale_factor=1.3)], 1.6),
+            ([FadeIn(ch[1]), Indicate(rrows[3], color=AMBER)], 1.6),
+            ([FadeIn(ch[2])], 1.6),
+            ([FadeOut(VGroup(*ch)), FadeIn(ck)], 1.5),
+        ]
+        play_voiced(self, "01_34", steps)
+        clear_stage(self)
+
+    # ------------------------------------------------------------ 01_35 (fun)
+    def s35(self):
+        hdr = make_header("Chuyện vui: bí mật nhân đôi", "Chuyện vui", CORAL)
+        n = 8
+        xs = [-4.55 + 1.3 * i for i in range(n)]
+        py = 0.8
+        ppl = VGroup(*[person(x, py, CYAN, 0.28) for x in xs])
+        tops = [P(x, py + 0.32) for x in xs]
+        glow = lambda i: ppl[i][1].animate.set_fill(AMBER, opacity=0.4).set_stroke(AMBER)
+        xl = [T("x", 16, AMBER, mono=True, bold=True).move_to(P(xs[i], py - 0.72)) for i in range(n)]
+        rounds = [[(0, 1)], [(0, 2), (1, 3)], [(0, 4), (1, 5), (2, 6), (3, 7)]]
+        rcols = [EMERALD, CYAN, VIOLET]
+        arcs = [VGroup(*[CurvedArrow(tops[a_], tops[b_], angle=-1.0, color=c_, stroke_width=3, tip_length=0.14) for a_, b_ in rd])
+                for rd, c_ in zip(rounds, rcols)]
+        slx = [-3.0, -1.0, 1.0, 3.0]
+        sly = -1.15
+        cap0 = T("số người biết bí mật", 15, TEXT_MUTED).move_to(P(-6.4, sly), aligned_edge=LEFT)
+        vl = [T("vòng " + str(i), 13, TEXT_MUTED).move_to(P(x, -0.62)) for i, x in enumerate(slx)]
+        sl = [T(s, 30, AMBER, mono=True, bold=True).move_to(P(x, sly)) for s, x in zip(["1", "2", "4", "8"], slx)]
+        qs = [T("?", 34, CORAL, bold=True).move_to(P(x, sly)) for x in slx[2:]]
+        sar = VGroup(*[arr((slx[i] + 0.4, sly), (slx[i + 1] - 0.4, sly), TEXT_MUTED, sw=2, tip=0.1) for i in range(3)])
+        mo = Mood("happy")
+        b1 = say("Đoán thử! Vòng 2 và vòng 3 có mấy người biết?", AMBER)
+        b2 = say("Bốn, rồi tám! Gấp đôi mỗi vòng!", EMERALD, 4.6)
+        ch = chips([("người biết bí mật", "CPU đã có giá trị x", CYAN), ("mỗi người kể cho 1 người", "EREW: không đọc chung", CORAL),
+                    ("số người biết gấp đôi", "log₂ n bước", EMERALD)],
+                   [(-4.2, -1.95), (0.0, -1.95), (4.2, -1.95)], h=0.7)
+        ck = chot("Broadcast: kỹ thuật nhân đôi, O(log n) trên EREW", AMBER)
+        steps = [
+            ([FadeIn(hdr), FadeIn(ppl), glow(0), FadeIn(xl[0]), FadeIn(cap0), FadeIn(vl[0]), FadeIn(sl[0]), FadeIn(mo.m)], 2.2),
+            ([Create(arcs[0]), glow(1), FadeIn(xl[1]), FadeIn(vl[1]), FadeIn(sl[1]), Create(sar[0])], 2.4),
+            ([mo.to("think"), FadeIn(vl[2]), FadeIn(vl[3]), FadeIn(qs[0]), FadeIn(qs[1]), Create(sar[1]), Create(sar[2]), FadeIn(b1)], 1.4),
+            ([Wait(3)], 3.0),
+            ([FadeOut(arcs[0]), Create(arcs[1]), glow(2), glow(3), FadeIn(xl[2]), FadeIn(xl[3]),
+              FadeOut(qs[0]), FadeIn(sl[2]), FadeOut(b1)], 2.0),
+            ([FadeOut(arcs[1]), Create(arcs[2]), *[glow(i) for i in range(4, 8)], *[FadeIn(xl[i]) for i in range(4, 8)],
+              FadeOut(qs[1]), FadeIn(sl[3]), mo.to("cheer"), FadeIn(b2)], 2.2),
+            ([mo.hop(), Indicate(VGroup(sl[2], sl[3]), color=EMERALD, scale_factor=1.3)], 0.8),
+            ([FadeOut(b2), FadeOut(arcs[2]), FadeIn(ch[0])], 1.4),
+            ([FadeIn(ch[1])], 1.4),
+            ([FadeIn(ch[2])], 1.4),
+            ([FadeOut(VGroup(*ch)), FadeIn(ck)], 1.5),
+        ]
+        play_voiced(self, "01_35", steps)
         clear_stage(self)

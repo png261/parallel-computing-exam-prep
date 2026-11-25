@@ -27,19 +27,74 @@ def key(s, color=AMBER):
     return T(s, 20, color, BOLD, maxw=12.0).move_to(DOWN * 3.1)
 
 
+
+from fun_utils import make_mascot, make_bubble, bounce
+
+
+def face(r, col, mood="happy"):
+    head = Circle(radius=r, fill_color=col, fill_opacity=0.95, stroke_color=TEXT_MAIN, stroke_width=1.5)
+    eyes = VGroup(*[Dot(RIGHT * dx * r + UP * 0.2 * r, radius=r * 0.13, color="#0D1117") for dx in (-0.38, 0.38)])
+    if mood == "sad":
+        mouth = Arc(radius=r * 0.4, start_angle=PI * 0.15, angle=PI * 0.7, color="#0D1117", stroke_width=2).shift(DOWN * 0.75 * r)
+    else:
+        mouth = Arc(radius=r * 0.4, start_angle=PI * 1.15, angle=PI * 0.7, color="#0D1117", stroke_width=2)
+    return VGroup(head, eyes, mouth)
+
+
+def chip(txt, col, w, size=15, mono=False):
+    b = VGroup(R(w, 0.5, col, r=0.1), T(txt, size, TEXT_MAIN, BOLD, MONO if mono else SANS, maxw=w - 0.16))
+    b[1].move_to(b[0])
+    return b
+
+
+def link(a_txt, b_txt, col, wa, wb, cx, y, size=15, mono=False):
+    a = chip(a_txt, AMBER, wa, size)
+    b = chip(b_txt, col, wb, size, mono)
+    VGroup(a, b).arrange(RIGHT, buff=0.6).move_to(RIGHT * cx + UP * y)
+    ar = Arrow(a.get_right(), b.get_left(), color=col, buff=0.05, stroke_width=3, max_tip_length_to_length_ratio=0.6)
+    return VGroup(a, ar, b)
+
+
+def reveal(l):
+    return LaggedStart(FadeIn(l[0]), GrowArrow(l[1]), FadeIn(l[2]), lag_ratio=0.5)
+
+
+def sad_mascot(scale, pos):
+    m = make_mascot("sad", scale)
+    m[4].rotate(PI)  # fun_utils draws the sad mouth as a smile; flip it into a frown
+    return m.move_to(pos)
+
+
+def bub(text, pos, col=CYAN, w=4.0):
+    return make_bubble(text, w, col, 18).move_to(pos)
+
+
+def truck(col=AMBER):
+    body = Rectangle(width=0.55, height=0.26, fill_color=col, fill_opacity=1, stroke_width=0)
+    cab = Rectangle(width=0.22, height=0.2, fill_color=TEXT_MAIN, fill_opacity=1, stroke_width=0).next_to(body, RIGHT, buff=0.02).align_to(body, DOWN)
+    crate = Square(0.18, fill_color=CYAN, fill_opacity=1, stroke_width=0).next_to(body, UP, buff=0)
+    wh = VGroup(*[Dot(radius=0.06, color="#0D1117").move_to(body.get_bottom() + RIGHT * dx) for dx in (-0.18, 0.18)])
+    return VGroup(body, cab, crate, wh)
+
+
 class Scene04CUDA(Scene):
     def construct(self):
         setup_bg(self)
         self.s01()
+        self.f40()
         self.s02()
         self.s03()
         self.s04()
+        self.f41()
         self.s06()
         self.s07()
+        self.f42()
         self.s09()
         self.s10()
+        self.f44()
         self.s11()
         self.s12()
+        self.f43()
         self.s13()
         self.s14()
         self.s15()
@@ -53,6 +108,7 @@ class Scene04CUDA(Scene):
         self.s24()
         self.s25()
         self.s26()
+        self.f45()
         self.s27()
         play_module_drills(self, "M4", "CUDA")
 
@@ -768,30 +824,300 @@ class Scene04CUDA(Scene):
         ])
         clear_stage(self)
 
-    # 04_25 four factors
+    # 04_40 ngua vs kien (predict)
+    def f40(self):
+        hdr = make_header("Chuyện vui: ngựa khỏe hay đàn kiến?", "CPU vs GPU", AMBER)
+        task = T("Việc: khuân 1000 hạt gạo về kho", 20, TEXT_MAIN, BOLD).move_to(UP * 2.45)
+        horses = VGroup(*[face(0.38, "#D97706") for _ in range(4)]).arrange(RIGHT, buff=0.3).move_to(LEFT * 3.4 + UP * 1.0)
+        hl = T("4 chú ngựa khỏe", 16, AMBER, BOLD).move_to(LEFT * 3.4 + UP * 0.3)
+        ants = VGroup(*[Circle(radius=0.085, fill_color=EMERALD, fill_opacity=0.9, stroke_width=0) for _ in range(40)]).arrange_in_grid(rows=4, cols=10, buff=0.11).move_to(RIGHT * 3.4 + UP * 1.1)
+        al = T("hàng nghìn chú kiến", 16, EMERALD, BOLD).move_to(RIGHT * 3.4 + UP * 0.3)
+        bars = VGroup(*[Rectangle(width=4.2, height=0.3, stroke_color=TEXT_MUTED, stroke_width=1.5, fill_opacity=0).move_to(RIGHT * x + DOWN * 0.3) for x in (-3.4, 3.4)])
+        fh = Rectangle(width=4.2 * 0.3, height=0.3, stroke_width=0, fill_color=AMBER, fill_opacity=0.9).align_to(bars[0], LEFT).align_to(bars[0], DOWN)
+        fa = Rectangle(width=4.2, height=0.3, stroke_width=0, fill_color=EMERALD, fill_opacity=0.9).align_to(bars[1], LEFT).align_to(bars[1], DOWN)
+        ph = T("xong 30%", 16, CORAL, BOLD).move_to(LEFT * 3.4 + DOWN * 0.72)
+        pa = T("xong 100%", 16, EMERALD, BOLD).move_to(RIGHT * 3.4 + DOWN * 0.72)
+        m1 = make_mascot("think", 0.5).move_to(UP * 0.9)
+        m2 = make_mascot("cheer", 0.5).move_to(UP * 0.9)
+        b1 = bub("Đoán thử! Ai xong trước?", UP * 1.9, AMBER, 4.0)
+        b2 = bub("Kiến thắng rồi!", UP * 1.9, EMERALD, 3.0)
+        l1 = link("ngựa", "nhân CPU: ít, rất nhanh", CYAN, 1.0, 2.7, -3.4, -1.65)
+        l2 = link("kiến", "nhân GPU: nhiều, song song", EMERALD, 1.0, 2.9, 3.4, -1.65)
+        k = key("Chốt: CPU tối ưu độ trễ · GPU tối ưu thông lượng (throughput)")
+        play_voiced(self, "04_40", [
+            ([FadeIn(hdr), FadeIn(task), FadeIn(horses), FadeIn(hl)], 1.5),
+            ([FadeIn(ants), FadeIn(al), FadeIn(bars)], 1.5),
+            ([FadeIn(m1), FadeIn(b1)], 1.0),
+            ([Wait()], 3.0),
+            ([GrowFromEdge(fa, LEFT, rate_func=lambda t: min(1.0, 2.5 * t)), GrowFromEdge(fh, LEFT)], 3.0),
+            ([ReplacementTransform(m1, m2), ReplacementTransform(b1, b2), FadeIn(ph), FadeIn(pa)], 0.8),
+            ([bounce(m2)], 0.6),
+            ([reveal(l1)], 1.5),
+            ([reveal(l2)], 1.5),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_41 school = grid/block/thread
+    def f41(self):
+        hdr = make_header("Chuyện vui: trường học của GPU", "grid · block · thread", VIOLET)
+        school = R(7.4, 2.5, VIOLET, op=0.22, r=0.12).move_to(LEFT * 2.4 + UP * 0.9)
+        cls = []; seats = []; labs = VGroup()
+        for b in range(4):
+            cx = -5.2 + 1.8 * b
+            cls.append(R(1.6, 1.4, EMERALD, op=0.3, r=0.08).move_to(RIGHT * cx + UP * 0.65))
+            labs.add(T("Lớp %d" % b, 14, EMERALD, BOLD).move_to(RIGHT * cx + UP * 1.75))
+            for kk in range(16):
+                rr, cc = divmod(kk, 4)
+                seats.append(Circle(radius=0.1, fill_color=CYAN, fill_opacity=0.85, stroke_width=0).move_to(RIGHT * (cx - 0.42 + 0.28 * cc) + UP * (1.05 - 0.28 * rr)))
+        stu = seats[52]
+        me = face(0.17, AMBER).move_to(stu)
+        hl = SurroundingRectangle(cls[3], color=AMBER, buff=0.04, stroke_width=3)
+        f = T("idx = 3 × 16 + 4 = 52", 24, AMBER, BOLD, MONO).move_to(LEFT * 2.4 + DOWN * 0.95)
+        ar = Arrow(stu.get_bottom(), f.get_top() + RIGHT * 1.6, color=AMBER, buff=0.08, stroke_width=3)
+        m1 = make_mascot("think", 0.5).move_to(LEFT * 5.3 + DOWN * 2.0)
+        m2 = make_mascot("happy", 0.5).move_to(LEFT * 5.3 + DOWN * 2.0)
+        b1 = bub("Lớp 3, ghế 4: số thứ tự mấy?", LEFT * 2.4 + DOWN * 2.0, CYAN, 4.0)
+        b2 = bub("3 × 16 + 4 = 52. Dễ ợt!", LEFT * 2.4 + DOWN * 2.0, EMERALD, 4.0)
+        ls = [link("Trường", "grid", VIOLET, 1.3, 2.0, 4.45, 1.8),
+              link("Lớp học", "block", EMERALD, 1.3, 2.0, 4.45, 1.05),
+              link("Học sinh", "thread", CYAN, 1.3, 2.0, 4.45, 0.3),
+              link("Số thứ tự", "idx toàn cục", AMBER, 1.3, 2.0, 4.45, -0.45)]
+        k = T("idx = blockIdx × blockDim + threadIdx", 22, AMBER, BOLD, MONO, maxw=12).move_to(DOWN * 3.1)
+        play_voiced(self, "04_41", [
+            ([FadeIn(hdr), FadeIn(school), FadeIn(labs), LaggedStart(*[FadeIn(c) for c in cls], lag_ratio=0.2), FadeIn(VGroup(*seats))], 2.0),
+            ([FadeIn(m1), FadeIn(b1)], 1.0),
+            ([Create(hl), FadeIn(me), Indicate(me)], 1.5),
+            ([FadeIn(f), GrowArrow(ar)], 1.6),
+            ([ReplacementTransform(m1, m2), ReplacementTransform(b1, b2)], 0.6),
+            ([bounce(m2)], 0.6),
+            ([reveal(ls[0])], 1.0), ([reveal(ls[1])], 1.0), ([reveal(ls[2])], 1.0), ([reveal(ls[3])], 1.0),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_42 desk / shelf / library
+    def f42(self):
+        hdr = make_header("Chuyện vui: bàn học, giá sách, thư viện", "phân cấp bộ nhớ", EMERALD)
+        stu = face(0.35, CYAN).move_to(LEFT * 5.7 + UP * 0.6)
+        path = DashedLine(LEFT * 5.3 + UP * 0.6, RIGHT * 3.2 + UP * 0.6, color=TEXT_MUTED, stroke_width=2)
+        desk = VGroup(R(1.4, 0.6, EMERALD), T("Bàn học", 15, TEXT_MAIN, BOLD)); desk[1].move_to(desk[0]); desk.move_to(LEFT * 4.0 + UP * 0.6)
+        shelf = VGroup(R(1.9, 1.0, CYAN), T("Giá sách lớp", 15, TEXT_MAIN, BOLD)); shelf[1].move_to(shelf[0]); shelf.move_to(LEFT * 1.4 + UP * 0.6)
+        lib_b = R(2.8, 1.5, CORAL).move_to(RIGHT * 4.6 + UP * 0.6)
+        roof = Polygon(lib_b.get_corner(UL) + LEFT * 0.15, lib_b.get_corner(UR) + RIGHT * 0.15, lib_b.get_top() + UP * 0.45,
+                       stroke_color=CORAL, stroke_width=2, fill_color=CORAL, fill_opacity=0.5)
+        lib = VGroup(lib_b, roof, T("Thư viện", 17, TEXT_MAIN, BOLD).move_to(lib_b))
+        far = T("bên kia thành phố", 14, CORAL, BOLD).move_to(RIGHT * 1.6 + UP * 0.95)
+        tok = Dot(radius=0.13, color=AMBER).move_to(LEFT * 5.1 + UP * 0.6)
+        home = LEFT * 5.1 + UP * 0.6
+        cd = chip("register · nhanh nhất", EMERALD, 2.3, 14).move_to(LEFT * 4.0 + DOWN * 0.95)
+        cs = chip("shared · vài chu kỳ", CYAN, 2.5, 14).move_to(LEFT * 1.4 + DOWN * 0.95)
+        cg = chip("global · 400–800 chu kỳ", CORAL, 3.2, 14).move_to(RIGHT * 4.6 + DOWN * 0.95)
+        ads = [Arrow(desk.get_bottom(), cd.get_top(), color=EMERALD, buff=0.05, stroke_width=3),
+               Arrow(shelf.get_bottom(), cs.get_top(), color=CYAN, buff=0.05, stroke_width=3),
+               Arrow(lib_b.get_bottom(), cg.get_top(), color=CORAL, buff=0.05, stroke_width=3)]
+        m1 = make_mascot("think", 0.5).move_to(LEFT * 4.5 + DOWN * 2.1)
+        m2 = sad_mascot(0.5, LEFT * 4.5 + DOWN * 2.1)
+        m3 = make_mascot("cheer", 0.5).move_to(LEFT * 4.5 + DOWN * 2.1)
+        b1 = bub("Mình cần một quyển sách!", LEFT * 1.3 + DOWN * 2.1, CYAN, 4.2)
+        b2 = bub("Đi xa mệt quá...", LEFT * 1.3 + DOWN * 2.1, CORAL, 4.2)
+        b3 = bub("Mượn một lần, dùng nhiều lần!", LEFT * 1.3 + DOWN * 2.1, EMERALD, 4.6)
+        k = key("Tải một lần từ global → dùng lại từ shared / register")
+        play_voiced(self, "04_42", [
+            ([FadeIn(hdr), FadeIn(stu), Create(path), LaggedStart(FadeIn(desk), FadeIn(shelf), FadeIn(lib), lag_ratio=0.4), FadeIn(far)], 2.0),
+            ([FadeIn(m1), FadeIn(b1), FadeIn(tok)], 1.0),
+            ([tok.animate.move_to(desk.get_top() + UP * 0.2)], 0.5), ([tok.animate.move_to(home)], 0.5), ([FadeIn(cd), GrowArrow(ads[0])], 0.8),
+            ([tok.animate.move_to(shelf.get_top() + UP * 0.2)], 1.0), ([tok.animate.move_to(home)], 1.0), ([FadeIn(cs), GrowArrow(ads[1])], 0.8),
+            ([tok.animate.move_to(lib_b.get_left()), ReplacementTransform(m1, m2), ReplacementTransform(b1, b2)], 3.0),
+            ([tok.animate.move_to(home)], 2.0), ([FadeIn(cg), GrowArrow(ads[2])], 0.8),
+            ([tok.animate.move_to(shelf.get_top() + UP * 0.2), ReplacementTransform(m2, m3), ReplacementTransform(b2, b3)], 1.2),
+            ([tok.animate.move_to(desk.get_top() + UP * 0.2), bounce(m3)], 0.8),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_43 narrow bridge (predict)
+    def f43(self):
+        hdr = make_header("Chuyện vui: cây cầu hẹp giữa hai thành phố", "PCIe", CORAL)
+        cl = R(3.0, 1.9, CYAN, op=0.3, r=0.12).move_to(LEFT * 4.6 + UP * 1.4)
+        cr = R(3.0, 1.9, EMERALD, op=0.3, r=0.12).move_to(RIGHT * 4.6 + UP * 1.4)
+        tl = T("CPU + RAM", 16, CYAN, BOLD).move_to(cl.get_top() + DOWN * 0.25)
+        tr = T("GPU + VRAM", 16, EMERALD, BOLD).move_to(cr.get_top() + DOWN * 0.25)
+        crates = VGroup(*[Square(0.28, fill_color=CYAN, fill_opacity=0.9, stroke_width=0) for _ in range(3)]).arrange(RIGHT, buff=0.1).move_to(cl.get_center() + DOWN * 0.2)
+        fac = VGroup(R(2.2, 0.7, AMBER, r=0.08), T("xưởng nhanh gấp 8", 15, TEXT_MAIN, BOLD, maxw=2.0)); fac[1].move_to(fac[0]); fac.move_to(cr.get_center() + DOWN * 0.2)
+        bridge = R(6.2, 0.28, BORDER_DIM, fill=BORDER_DIM, op=1.0, r=0.05).move_to(UP * 1.4)
+        bl = T("cầu hẹp", 15, CORAL, BOLD).move_to(UP * 1.9)
+        tk = truck().move_to(LEFT * 3.0 + UP * 1.68)
+        tk2 = truck(EMERALD).move_to(RIGHT * 3.0 + UP * 1.68)
+        sc = 0.13; x0 = -5.8
+        def seg(a, b, y, col):
+            return Rectangle(width=(b - a) * sc, height=0.4, stroke_width=0, fill_color=col, fill_opacity=0.9).move_to(RIGHT * (x0 + (a + b) / 2 * sc) + UP * y)
+        nc = T("CPU tự làm hết", 13, TEXT_MUTED, BOLD).move_to(LEFT * 5.8 + DOWN * 0.65, aligned_edge=LEFT)
+        ng = T("Qua GPU: chép vào + kernel + chép ra", 13, TEXT_MUTED, BOLD).move_to(LEFT * 5.8 + DOWN * 1.4, aligned_edge=LEFT)
+        bc = seg(0, 15.1, -1.0, CYAN)
+        b1 = seg(0, 25.2, -1.75, CORAL); b2 = seg(25.2, 27.04, -1.75, EMERALD); b3 = seg(27.04, 40.24, -1.75, AMBER)
+        t_c = T("15,1 ms", 16, CYAN, BOLD, MONO).next_to(bc, RIGHT, buff=0.15)
+        t_g = T("≈ 40 ms", 16, CORAL, BOLD, MONO).next_to(b3, RIGHT, buff=0.15)
+        m1 = make_mascot("think", 0.45).move_to(RIGHT * 5.7 + DOWN * 1.2)
+        m2 = sad_mascot(0.45, RIGHT * 5.7 + DOWN * 1.2)
+        q1 = bub("Đoán thử! Tổng thể nhanh hay chậm?", RIGHT * 3.2 + DOWN * 0.2, AMBER, 4.4)
+        q2 = bub("Chậm hơn 2,7 lần!", RIGHT * 3.4 + DOWN * 0.2, CORAL, 3.0)
+        ls = [link("cầu hẹp", "PCIe", CORAL, 1.2, 1.6, -4.4, -2.55),
+              link("xe tải", "cudaMemcpy", CYAN, 1.2, 1.6, 0.0, -2.55),
+              link("xưởng", "kernel", EMERALD, 1.2, 1.6, 4.4, -2.55)]
+        k = key("Kernel nhanh 8×, tổng thể chậm 2,7×", CORAL)
+        play_voiced(self, "04_43", [
+            ([FadeIn(hdr), FadeIn(cl), FadeIn(cr), FadeIn(tl), FadeIn(tr), FadeIn(bridge), FadeIn(bl), FadeIn(crates)], 1.5),
+            ([FadeIn(fac), FadeIn(tk)], 1.0),
+            ([tk.animate.move_to(RIGHT * 3.0 + UP * 1.68)], 1.6),
+            ([Indicate(fac)], 0.8),
+            ([FadeOut(tk), FadeIn(tk2)], 0.2),
+            ([tk2.animate.move_to(LEFT * 3.0 + UP * 1.68)], 1.6),
+            ([FadeIn(m1), FadeIn(q1)], 1.0),
+            ([Wait()], 3.0),
+            ([FadeIn(nc), GrowFromEdge(bc, LEFT), FadeIn(t_c)], 1.2),
+            ([FadeIn(ng), GrowFromEdge(b1, LEFT)], 1.4),
+            ([GrowFromEdge(b2, LEFT), GrowFromEdge(b3, LEFT), FadeIn(t_g), ReplacementTransform(m1, m2), ReplacementTransform(q1, q2)], 1.2),
+            ([reveal(ls[0])], 1.0), ([reveal(ls[1])], 1.0), ([reveal(ls[2])], 1.0),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_44 order food = async launch
+    def f44(self):
+        hdr = make_header("Chuyện vui: gọi món rồi đi chơi", "bất đồng bộ", AMBER)
+        you = face(0.4, CYAN).move_to(LEFT * 5.0 + UP * 1.2)
+        yl = T("Bạn = CPU", 14, CYAN, BOLD).next_to(you, DOWN, buff=0.1)
+        fr = face(0.3, VIOLET).move_to(LEFT * 3.5 + UP * 1.2)
+        counter = VGroup(R(1.6, 0.5, AMBER), T("Quầy", 15, TEXT_MAIN, BOLD)); counter[1].move_to(counter[0]); counter.move_to(LEFT * 0.4 + UP * 0.3)
+        kit = R(3.2, 2.0, EMERALD, op=0.3, r=0.12).move_to(RIGHT * 4.4 + UP * 1.3)
+        kl = T("Bếp = GPU", 15, EMERALD, BOLD).move_to(kit.get_top() + DOWN * 0.25)
+        pot = Circle(radius=0.4, fill_color=BORDER_DIM, fill_opacity=1, stroke_color=TEXT_MAIN, stroke_width=2).move_to(RIGHT * 4.4 + UP * 1.0)
+        pot_a = pot.copy().set_fill(AMBER, 1)
+        pot_g = pot.copy().set_fill(EMERALD, 1)
+        slip = Rectangle(width=0.35, height=0.25, fill_color=WHITE, fill_opacity=1, stroke_width=0).move_to(you.get_right() + RIGHT * 0.1)
+        chat = bub("Rảnh rồi, tám chuyện thôi!", LEFT * 3.8 + UP * 2.2, VIOLET, 3.6)
+        raw = Circle(radius=0.25, fill_color=CORAL, fill_opacity=1, stroke_color=TEXT_MAIN, stroke_width=2).move_to(pot)
+        rawl = T("sống!", 14, CORAL, BOLD).move_to(LEFT * 4.0 + UP * 0.45)
+        ok = Circle(radius=0.25, fill_color=EMERALD, fill_opacity=1, stroke_color=TEXT_MAIN, stroke_width=2).move_to(pot)
+        m1 = make_mascot("think", 0.5).move_to(LEFT * 5.4 + DOWN * 2.1)
+        m2 = sad_mascot(0.5, LEFT * 5.4 + DOWN * 2.1)
+        m3 = make_mascot("cheer", 0.5).move_to(LEFT * 5.4 + DOWN * 2.1)
+        b1 = bub("Ăn luôn được chưa nhỉ?", LEFT * 2.5 + DOWN * 2.1, CYAN, 3.8)
+        b2 = bub("Chưa chín mà! Chóng mặt...", LEFT * 2.5 + DOWN * 2.1, CORAL, 4.2)
+        b3 = bub("Chờ ở quầy là chuẩn!", LEFT * 2.5 + DOWN * 2.1, EMERALD, 3.8)
+        ls = [link("gọi món, đi chơi", "kernel launch", AMBER, 1.6, 1.7, -4.5, -0.95, 13),
+              link("chờ ở quầy", "cudaDeviceSynchronize", EMERALD, 1.3, 2.3, -0.1, -0.95, 13, True),
+              link("món chưa chín", "đọc dữ liệu chưa xong", CORAL, 1.5, 2.1, 4.4, -0.95, 13)]
+        k = key("Thiếu cudaDeviceSynchronize: CPU đọc dữ liệu chưa xong", CORAL)
+        play_voiced(self, "04_44", [
+            ([FadeIn(hdr), FadeIn(you), FadeIn(yl), FadeIn(fr), FadeIn(counter), FadeIn(kit), FadeIn(kl), FadeIn(pot)], 1.5),
+            ([FadeIn(slip)], 0.2),
+            ([slip.animate.move_to(pot.get_center() + LEFT * 0.6 + UP * 0.1)], 1.2),
+            ([FadeOut(slip), Transform(pot, pot_a), FadeIn(chat)], 0.8),
+            ([reveal(ls[0])], 1.4),
+            ([FadeIn(m1), FadeIn(b1), FadeIn(raw)], 0.8),
+            ([raw.animate.move_to(LEFT * 4.2 + UP * 0.8)], 1.6),
+            ([ReplacementTransform(m1, m2), ReplacementTransform(b1, b2), FadeIn(rawl)], 0.8),
+            ([FadeOut(raw), FadeOut(rawl), FadeOut(chat), you.animate.move_to(LEFT * 2.0 + UP * 0.3)] , 1.2),
+            ([Indicate(counter)], 0.6),
+            ([reveal(ls[1])], 1.4),
+            ([Transform(pot, pot_g)], 1.0),
+            ([FadeIn(ok)], 0.2),
+            ([ok.animate.move_to(you.get_right() + UP * 0.35 + RIGHT * 0.3), ReplacementTransform(m2, m3), ReplacementTransform(b2, b3)], 1.4),
+            ([bounce(m3)], 0.6),
+            ([reveal(ls[2])], 1.4),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_45 buses (predict)
+    def f45(self):
+        hdr = make_header("Chuyện vui: xe buýt cho 1000 khách", "số block = ⌈n / 256⌉", VIOLET)
+        crowd = VGroup(*[face(0.12, [CYAN, AMBER, VIOLET, EMERALD][i % 4]) for i in range(24)]).arrange_in_grid(rows=2, cols=12, buff=0.1).move_to(RIGHT * 0.2 + UP * 2.0)
+        cl = T("1000 khách", 18, TEXT_MAIN, BOLD).move_to(RIGHT * 3.7 + UP * 2.0)
+        xs = [-4.35, -1.45, 1.45, 4.35]
+        buses = []; fills = []
+        for i, x in enumerate(xs):
+            body = R(2.6, 1.0, AMBER, r=0.1).move_to(RIGHT * x + UP * 0.45)
+            lab = T("Xe %d" % i, 15, AMBER, BOLD).move_to(RIGHT * x + UP * 0.72)
+            bar = Rectangle(width=2.2, height=0.22, stroke_color=TEXT_MUTED, stroke_width=1.2, fill_opacity=0).move_to(RIGHT * x + UP * 0.3)
+            frac = 1.0 if i < 3 else 232 / 256
+            fl = Rectangle(width=2.2 * frac, height=0.22, stroke_width=0, fill_color=CYAN, fill_opacity=0.85).align_to(bar, LEFT).align_to(bar, DOWN)
+            wh = VGroup(*[Dot(radius=0.09, color=TEXT_MUTED).move_to(RIGHT * (x + dx) + UP * -0.07) for dx in (-0.8, 0.8)])
+            buses.append(VGroup(body, lab, bar, wh)); fills.append(fl)
+        cap = T("mỗi xe 256 chỗ", 16, CYAN, BOLD).move_to(UP * -0.4 + LEFT * 2.9)
+        qm = T("?", 64, AMBER, BOLD).move_to(RIGHT * xs[3] + UP * 0.45)
+        slot = R(2.6, 1.0, AMBER, op=0.0, r=0.1).move_to(RIGHT * xs[3] + UP * 0.45)
+        slot.set_stroke(AMBER, 2)
+        empty = T("24 ghế trống", 15, CORAL, BOLD).move_to(RIGHT * xs[3] + DOWN * 0.4)
+        w1 = T("1000 ÷ 256 chia nguyên = 3 xe → bỏ rơi 232 người", 17, CORAL, BOLD, maxw=11).move_to(DOWN * 0.95)
+        w2 = T("⌈1000 / 256⌉ = 4 xe: làm tròn lên", 20, EMERALD, BOLD, maxw=11).move_to(DOWN * 1.5)
+        m1 = make_mascot("think", 0.45).move_to(LEFT * 5.8 + UP * 2.0)
+        m2 = make_mascot("cheer", 0.45).move_to(LEFT * 5.8 + UP * 2.0)
+        b1 = bub("Đoán thử! Cần mấy xe?", LEFT * 3.4 + UP * 2.0, AMBER, 2.9)
+        b2 = bub("Bốn xe!", LEFT * 3.4 + UP * 2.0, EMERALD, 2.9)
+        ls = [link("xe buýt", "block", AMBER, 1.2, 1.6, -4.4, -2.25),
+              link("chỗ ngồi", "thread", CYAN, 1.2, 1.6, 0.0, -2.25),
+              link("khách", "phần tử dữ liệu", EMERALD, 1.0, 2.0, 4.4, -2.25)]
+        k = T("nblocks = (n + 255) / 256 · thêm if (i < n)", 20, AMBER, BOLD, MONO, maxw=12).move_to(DOWN * 3.1)
+        play_voiced(self, "04_45", [
+            ([FadeIn(hdr), FadeIn(crowd), FadeIn(cl)], 1.2),
+            ([LaggedStart(*[FadeIn(b) for b in buses[:3]], lag_ratio=0.3), FadeIn(slot), FadeIn(cap)], 1.6),
+            ([GrowFromEdge(fills[i], LEFT) for i in range(3)], 1.2),
+            ([FadeIn(m1), FadeIn(b1), FadeIn(qm)], 1.0),
+            ([Wait()], 3.0),
+            ([ReplacementTransform(qm, buses[3]), FadeOut(slot), ReplacementTransform(m1, m2), ReplacementTransform(b1, b2)], 0.8),
+            ([bounce(m2), GrowFromEdge(fills[3], LEFT), FadeIn(empty)], 1.0),
+            ([FadeIn(w1)], 1.5),
+            ([FadeIn(w2)], 1.5),
+            ([reveal(ls[0])], 1.0), ([reveal(ls[1])], 1.0), ([reveal(ls[2])], 1.0),
+            ([FadeIn(k)], 0.8),
+        ])
+        clear_stage(self)
+
+    # 04_25 four factors (diagram)
     def s25(self):
         hdr = make_header("Bốn yếu tố: CPU và GPU", "song song · xung · băng thông · độ trễ", AMBER)
-        rows = [("Song song", "ít lõi, nhiều lệnh/chu kỳ", "hàng nghìn lõi"),
-                ("Xung nhịp", "cao, chạm trần công suất", "thấp hơn CPU"),
-                ("Băng thông", "DDR: 67 GB/s", "GDDR/HBM2: 438 GB/s"),
-                ("Độ trễ", "cache, out-of-order", "đa luồng mức cao")]
-        ch = T("CPU", 20, CYAN, BOLD).move_to(RIGHT * -0.4 + UP * 2.4)
-        gh = T("GPU", 20, EMERALD, BOLD).move_to(RIGHT * 3.9 + UP * 2.4)
+        centers = [(-3.3, 1.2), (3.3, 1.2), (-3.3, -1.3), (3.3, -1.3)]
+        titles = ["Song song", "Xung nhịp", "Băng thông", "Độ trễ"]
+        labels = [("ít lõi", "hàng nghìn lõi"), ("cao, chạm trần công suất", "thấp hơn CPU"),
+                  ("DDR: 67 GB/s", "GDDR/HBM2: 438 GB/s"), ("cache, out-of-order", "đa luồng mức cao")]
         grp = []
-        for i, (a, b, c_) in enumerate(rows):
-            y = 1.4 - 1.0 * i
-            la = T(a, 18, AMBER, BOLD, maxw=2.3).move_to(LEFT * 4.6 + UP * y)
-            rb = VGroup(R(3.8, 0.7, CYAN, r=0.08), T(b, 15, TEXT_MAIN, maxw=3.6)); rb[1].move_to(rb[0]); rb.move_to(RIGHT * -0.4 + UP * y)
-            rc = VGroup(R(3.8, 0.7, EMERALD, r=0.08), T(c_, 15, TEXT_MAIN, maxw=3.6)); rc[1].move_to(rc[0]); rc.move_to(RIGHT * 3.9 + UP * y)
-            grp.append(VGroup(la, rb, rc))
+        for i, (cx, cy) in enumerate(centers):
+            p = R(6.1, 2.35, BORDER_DIM, op=0.5, r=0.12).move_to(RIGHT * cx + UP * cy)
+            t = T(titles[i], 17, AMBER, BOLD).move_to(RIGHT * cx + UP * (cy + 0.95))
+            tc = T("CPU", 13, CYAN, BOLD).move_to(RIGHT * (cx - 1.5) + UP * (cy + 0.6))
+            tg = T("GPU", 13, EMERALD, BOLD).move_to(RIGHT * (cx + 1.5) + UP * (cy + 0.6))
+            lc = T(labels[i][0], 13, TEXT_MAIN, maxw=2.7).move_to(RIGHT * (cx - 1.5) + UP * (cy - 0.92))
+            lg = T(labels[i][1], 13, TEXT_MAIN, maxw=2.7).move_to(RIGHT * (cx + 1.5) + UP * (cy - 0.92))
+            base = cy - 0.6
+            if i == 0:
+                cv = VGroup(*[C(0.42, 0.42, CYAN, 0.85) for _ in range(4)]).arrange_in_grid(rows=2, cols=2, buff=0.08).move_to(RIGHT * (cx - 1.5) + UP * (cy - 0.1))
+                gv = VGroup(*[C(0.15, 0.15, EMERALD, 0.5) for _ in range(32)]).arrange_in_grid(rows=4, cols=8, buff=0.04).move_to(RIGHT * (cx + 1.5) + UP * (cy - 0.1))
+            elif i == 1:
+                cv = VGroup(C(0.6, 0.9, CYAN, 0.85).move_to(RIGHT * (cx - 1.5) + UP * (base + 0.45)),
+                            DashedLine(RIGHT * (cx - 1.9) + UP * (base + 0.96), RIGHT * (cx - 1.1) + UP * (base + 0.96), color=CORAL, stroke_width=3))
+                gv = VGroup(C(0.6, 0.6, EMERALD, 0.85).move_to(RIGHT * (cx + 1.5) + UP * (base + 0.3)))
+            elif i == 2:
+                cv = VGroup(C(0.6, 0.12, CYAN, 0.85).move_to(RIGHT * (cx - 1.5) + UP * (base + 0.06)),
+                            T("67", 13, CYAN, BOLD, MONO).move_to(RIGHT * (cx - 1.5) + UP * (base + 0.28)))
+                gv = VGroup(C(0.6, 0.8, EMERALD, 0.85).move_to(RIGHT * (cx + 1.5) + UP * (base + 0.4)),
+                            T("438", 13, EMERALD, BOLD, MONO).move_to(RIGHT * (cx + 1.5) + UP * (base + 0.98)))
+            else:
+                cv = VGroup(R(1.1, 0.9, VIOLET, op=0.5, r=0.08), R(0.65, 0.55, CYAN, op=0.7, r=0.06), R(0.25, 0.25, AMBER, op=1, r=0.04))
+                for q in cv:
+                    q.move_to(RIGHT * (cx - 1.5) + UP * (cy - 0.1))
+                gv = VGroup(*[C(0.2, 0.5, [CYAN, AMBER, EMERALD, VIOLET][j % 4], 0.85) for j in range(8)]).arrange(RIGHT, buff=0.04).move_to(RIGHT * (cx + 1.5) + UP * (cy - 0.1))
+            grp.append((VGroup(p, t, tc, tg, lc, lg, cv, gv), gv))
         k = key("438 ÷ 67 ≈ 6,5 lần băng thông", EMERALD)
-        hl = SurroundingRectangle(grp[2], color=AMBER, buff=0.1, stroke_width=3)
+        hl = SurroundingRectangle(grp[2][0][0], color=AMBER, buff=0.04, stroke_width=3)
         play_voiced(self, "04_25", [
-            ([FadeIn(hdr), FadeIn(ch), FadeIn(gh)], 0.8),
-            ([FadeIn(grp[0])], 1.2),
-            ([FadeIn(grp[1])], 1.2),
-            ([FadeIn(grp[2])], 1.2),
-            ([FadeIn(grp[3])], 1.2),
+            ([FadeIn(hdr), FadeIn(grp[0][0])], 1.2),
+            ([LaggedStart(*[c.animate.set_fill(AMBER, 0.95) for c in grp[0][1]], lag_ratio=0.04)], 1.5),
+            ([FadeIn(grp[1][0])], 1.5),
+            ([FadeIn(grp[2][0])], 1.5),
+            ([FadeIn(grp[3][0])], 1.5),
             ([Create(hl), FadeIn(k)], 1.2),
         ])
         clear_stage(self)
@@ -824,30 +1150,39 @@ class Scene04CUDA(Scene):
         ])
         clear_stage(self)
 
-    # 04_27 shared vs global
+    # 04_27 shared vs global (diagram)
     def s27(self):
         hdr = make_header("Shared và Global: phạm vi, tuổi thọ", "__shared__ · cudaMalloc", VIOLET)
-        rows = [("Khai báo", "__shared__ float s[N]", "cudaMalloc / cudaFree"),
-                ("Phạm vi", "các luồng trong block", "mọi luồng, mọi kernel"),
-                ("Tuổi thọ", "bằng block", "do host quyết định"),
-                ("Kích thước", "~48 KB", "12 GB (RTX 4070)"),
-                ("Độ trễ", "vài chu kỳ", "400–800 chu kỳ")]
-        sh = T("Shared", 20, CYAN, BOLD).move_to(RIGHT * -0.3 + UP * 2.5)
-        gl = T("Global", 20, CORAL, BOLD).move_to(RIGHT * 4.2 + UP * 2.5)
-        grp = []
-        for i, (a, b, c_) in enumerate(rows):
-            y = 1.6 - 0.85 * i
-            la = T(a, 17, AMBER, BOLD, maxw=2.0).move_to(LEFT * 4.8 + UP * y)
-            rb = VGroup(R(4.2, 0.62, CYAN, r=0.08), T(b, 15, TEXT_MAIN, BOLD if i == 0 else NORMAL, MONO if i == 0 else SANS, maxw=4.0)); rb[1].move_to(rb[0]); rb.move_to(RIGHT * -0.3 + UP * y)
-            rc = VGroup(R(4.2, 0.62, CORAL, r=0.08), T(c_, 15, TEXT_MAIN, BOLD if i == 0 else NORMAL, MONO if i == 0 else SANS, maxw=4.0)); rc[1].move_to(rc[0]); rc.move_to(RIGHT * 4.2 + UP * y)
-            grp.append(VGroup(la, rb, rc))
-        k = key("Kết quả cần dùng ở kernel sau phải nằm trong global", AMBER)
+
+        def blockbox(y, name):
+            b = R(4.4, 1.35, EMERALD, op=0.4, r=0.1).move_to(LEFT * 3.9 + UP * y)
+            nm = T(name, 14, EMERALD, BOLD).move_to(b.get_corner(UL) + RIGHT * 0.2 + DOWN * 0.2, aligned_edge=LEFT)
+            th = VGroup(*[Dot(radius=0.12, color=c) for c in (CYAN, AMBER, VIOLET)]).arrange(RIGHT, buff=0.25).move_to(b.get_left() + RIGHT * 0.95 + DOWN * 0.1)
+            sh = VGroup(R(1.6, 0.55, CYAN, r=0.06), T("shared", 15, TEXT_MAIN, BOLD)); sh[1].move_to(sh[0]); sh.move_to(b.get_right() + LEFT * 1.05 + DOWN * 0.12)
+            a = Arrow(th.get_right(), sh.get_left(), color=CYAN, buff=0.08, stroke_width=3)
+            return VGroup(b, nm, th, sh, a), b
+        blk0, b0 = blockbox(1.4, "Block 0")
+        blk1, b1 = blockbox(-0.2, "Block 1")
+        gb = R(4.6, 3.3, CORAL, op=0.3, r=0.12).move_to(RIGHT * 3.9 + UP * 0.6)
+        gt = T("Global", 17, CORAL, BOLD).move_to(gb.get_top() + DOWN * 0.25)
+        cells = VGroup(*[C(0.5, 0.5, CORAL, 0.5) for _ in range(12)]).arrange_in_grid(rows=3, cols=4, buff=0.12).move_to(gb.get_center() + DOWN * 0.1)
+        g0 = Arrow(b0.get_right(), gb.get_left() + UP * 0.8, color=CORAL, buff=0.08, stroke_width=3)
+        g1 = Arrow(b1.get_right(), gb.get_left() + DOWN * 0.8, color=CORAL, buff=0.08, stroke_width=3)
+        tag1 = T("__shared__ float s[N]", 14, CYAN, BOLD, MONO).move_to(LEFT * 3.9 + DOWN * 1.35)
+        tag2 = T("~48 KB · vài chu kỳ · sống bằng block", 14, TEXT_MAIN, maxw=4.6).move_to(LEFT * 3.9 + DOWN * 1.75)
+        tag3 = T("cudaMalloc / cudaFree · host quyết định", 14, CORAL, BOLD, maxw=4.6).move_to(RIGHT * 3.9 + DOWN * 1.35)
+        tag4 = T("12 GB · 400–800 chu kỳ · mọi kernel thấy", 14, TEXT_MAIN, maxw=4.6).move_to(RIGHT * 3.9 + DOWN * 1.75)
+        note = T("Kernel xong: shared biến mất, global còn nguyên", 17, AMBER, BOLD, maxw=11).move_to(DOWN * 2.45)
+        blk2, b2 = blockbox(1.4, "Kernel sau")
+        g2 = Arrow(b2.get_right(), gb.get_left() + UP * 0.8, color=AMBER, buff=0.08, stroke_width=3)
+        k = key("Kết quả cần dùng ở kernel sau phải nằm trong global")
         play_voiced(self, "04_27", [
-            ([FadeIn(hdr), FadeIn(sh), FadeIn(gl)], 0.8),
-            ([FadeIn(grp[0])], 1.0),
-            ([FadeIn(grp[1])], 1.2),
-            ([FadeIn(grp[2])], 1.2),
-            ([FadeIn(grp[3]), FadeIn(grp[4])], 1.6),
+            ([FadeIn(hdr), FadeIn(blk0), FadeIn(blk1), FadeIn(gb), FadeIn(gt), FadeIn(cells)], 1.5),
+            ([FadeIn(tag1), FadeIn(tag2)], 1.2),
+            ([GrowArrow(g0), GrowArrow(g1), FadeIn(tag3), FadeIn(tag4)], 1.5),
+            ([cells[i].animate.set_fill(AMBER, 0.95) for i in range(4)], 1.2),
+            ([FadeOut(blk0), FadeOut(blk1), FadeOut(g0), FadeOut(g1), FadeIn(note)], 1.4),
+            ([FadeIn(blk2), GrowArrow(g2), Indicate(cells[0]), Indicate(cells[1])], 1.6),
             ([FadeIn(k)], 0.8),
         ])
         clear_stage(self)

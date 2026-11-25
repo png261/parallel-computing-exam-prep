@@ -58,6 +58,14 @@
   .hidden { display:none !important; }
   .lockrub .q-meta button { display:none; }
   .pager { display:flex; justify-content:center; gap:8px; align-items:center; margin:14px 0; color:var(--muted); font-size:0.85rem; }
+
+  .hud { display:inline-flex; align-items:center; gap:8px; font-size:0.8rem; background:#1f2937; border:1px solid var(--violet); border-radius:999px; padding:4px 12px; white-space:nowrap; }
+  .xpbar { display:inline-block; width:70px; height:6px; background:#374151; border-radius:3px; overflow:hidden; }
+  .xpbar > div { height:100%; background:var(--amber); transition:width .4s; }
+  #toast { position:fixed; left:50%; bottom:26px; transform:translate(-50%, 20px); background:var(--panel); border:2px solid var(--emerald); color:var(--text); padding:10px 18px; border-radius:12px; font-weight:600; opacity:0; pointer-events:none; transition:all .25s; z-index:60; }
+  #toast.show { opacity:1; transform:translate(-50%, 0); }
+  #toast.bad { border-color:var(--coral); }
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:55; }
 </style>
 </head>
 <body>
@@ -69,7 +77,7 @@
     </div>
     <div class="controls" style="margin-top:0">
       <div class="seg"><button id="mStudy" class="on" onclick="setMode('study')">Chế độ học</button><button id="mExam" onclick="setMode('exam')">Chế độ thi</button></div>
-      <span class="timer hidden" id="timerDisplay">65:00</span>
+      <span id="hud" class="hud"></span> <span class="timer hidden" id="timerDisplay">65:00</span>
     </div>
   </div>
   <div class="controls">
@@ -147,9 +155,56 @@ const LVL = {recall:"nhớ", apply:"vận dụng", calc:"tính", code:"đọc co
 const L = i => String.fromCharCode(65 + i);
 
 function save() { localStorage.setItem(STORE, JSON.stringify(progress)); }
+
+// ---------- Gamification: XP, levels, streaks, badges, confetti ----------
+const GSTORE = "phpc_game_v1";
+let game = JSON.parse(localStorage.getItem(GSTORE) || '{"xp":0,"streak":0,"best":0,"awarded":{}}');
+const LEVELS = ["Tân binh","Thread Rookie","Mutex Master","MPI Ranger","CUDA Knight","Parallel Wizard","Huyền thoại song song"];
+const GOOD = ["Chuẩn rồi!","Quá đỉnh!","Bé Core vỗ tay!","Siêu tốc độ!","Đúng chóc!","Speedup thật sự!"];
+const BAD = ["Gần đúng rồi, xem lời giải nhé","Race condition rồi! Thử lại sau nha","Không sao, lỗi là cách học nhanh nhất","Bé Core chóng mặt... đọc lại lời giải nào"];
+const levelOf = xp => Math.min(Math.floor(xp / 100), LEVELS.length - 1);
+function saveGame() { localStorage.setItem(GSTORE, JSON.stringify(game)); }
+function toast(msg, good) {
+  let t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
+  t.textContent = msg; t.className = "show " + (good ? "good" : "bad");
+  clearTimeout(t._h); t._h = setTimeout(() => { t.className = ""; }, 2300);
+}
+function confetti() {
+  let c = document.getElementById("confetti");
+  if (!c) { c = document.createElement("canvas"); c.id = "confetti"; document.body.appendChild(c); }
+  c.width = innerWidth; c.height = innerHeight; const g = c.getContext("2d");
+  const cols = ["#38bdf8","#fbbf24","#34d399","#f87171","#a78bfa"];
+  const ps = Array.from({length: 120}, () => ({x: innerWidth / 2, y: innerHeight * 0.35, vx: (Math.random() - 0.5) * 16, vy: -Math.random() * 14 - 4, s: 4 + Math.random() * 5, c: cols[(Math.random() * 5) | 0], r: Math.random() * 6}));
+  let f = 0;
+  (function tick() { g.clearRect(0, 0, c.width, c.height); ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.45; p.r += 0.2; g.fillStyle = p.c; g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); g.restore(); });
+    if (++f < 110) requestAnimationFrame(tick); else g.clearRect(0, 0, c.width, c.height); })();
+}
+function renderHud() {
+  const h = document.getElementById("hud"); if (!h) return;
+  const lv = levelOf(game.xp), into = game.xp - lv * 100, pct = lv >= LEVELS.length - 1 ? 100 : into;
+  h.innerHTML = '<b>' + (lv + 1) + '</b> ' + LEVELS[lv] + ' <span class="xpbar"><div style="width:' + pct + '%"></div></span> ' + game.xp + ' XP' + (game.streak >= 2 ? ' · 🔥×' + game.streak : '');
+}
+function gameOnAnswer(q, ok) {
+  const before = levelOf(game.xp);
+  if (ok) {
+    game.streak++; game.best = Math.max(game.best, game.streak);
+    let gain = 0;
+    if (!game.awarded[q.id]) { gain = 10 + (game.streak >= 3 ? 5 : 0); game.awarded[q.id] = 1; } else gain = 1;
+    game.xp += gain;
+    const lvUp = levelOf(game.xp) > before;
+    toast("+" + gain + " XP · " + GOOD[(Math.random() * GOOD.length) | 0] + (game.streak >= 3 ? "  🔥×" + game.streak : "") + (lvUp ? "  ⭐ LÊN CẤP! " + LEVELS[levelOf(game.xp)] : ""), true);
+    if (lvUp || game.streak % 5 === 0) confetti();
+  } else {
+    game.streak = 0; toast(BAD[(Math.random() * BAD.length) | 0], false);
+  }
+  saveGame(); renderHud();
+}
+function badgeOf(ratio) { return ratio >= 0.8 ? "🥇" : ratio >= 0.5 ? "🥈" : ratio >= 0.25 ? "🥉" : "🎯"; }
 function record(q, oi) {
   const p = progress[q.id] || { n: 0 };
   p.ok = (oi === q.ans); p.n++; progress[q.id] = p; save();
+  gameOnAnswer(q, oi === q.ans);
 }
 
 function setMode(m) {
@@ -272,6 +327,7 @@ function renderEssays() {
 }
 
 function updateStats() {
+  renderHud();
   const answered = view.filter(q => answers[q.id] !== undefined).length;
   const right = view.filter(q => answers[q.id] === q.ans && revealed[q.id]).length;
   const checkedN = view.filter(q => revealed[q.id] && answers[q.id] !== undefined).length;
@@ -286,7 +342,7 @@ function updateStats() {
     const qs = QUESTIONS.filter(q => q.mod === m);
     const ok = qs.filter(q => progress[q.id] && progress[q.id].ok).length;
     const seen = qs.filter(q => progress[q.id]).length;
-    return '<div class="modcard" onclick="document.getElementById(\'modF\').value=\'' + m + '\';applyFilters()"><b>' + MODNAMES[m] + '</b><br/>' +
+    return '<div class="modcard" onclick="document.getElementById(\'modF\').value=\'' + m + '\';applyFilters()"><b>' + MODNAMES[m] + '</b> ' + badgeOf(ok / qs.length) + '<br/>' +
       ok + ' đúng · ' + seen + ' đã làm · ' + qs.length + ' tổng<div class="bar"><div style="width:' + Math.round(100 * ok / qs.length) + '%"></div></div></div>';
   }).join("");
 }
@@ -313,7 +369,7 @@ function gradeAll() {
 
 function resetProgress() {
   if (!confirm("Xóa kết quả đã lưu của tất cả câu hỏi?")) return;
-  progress = {}; save(); answers = {}; revealed = {}; render();
+  progress = {}; save(); game = {xp:0,streak:0,best:0,awarded:{}}; saveGame(); answers = {}; revealed = {}; render();
 }
 
 function startTimer() {

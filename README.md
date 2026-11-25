@@ -15,11 +15,12 @@ Target exam: 40–60 multiple-choice questions + 1–2 short essays, 60–70 min
 | [`video/vi/`](video/vi) | Source of the Vietnamese review video (Manim scenes + narration, voice: VieNeu-TTS) |
 | [`video/en/`](video/en) | Source of the older English video (previous scope: Ch. 1–12, not updated) |
 
-The rendered Vietnamese review video (49 min, chapter markers per module) is on the [Releases page](../../releases/latest) (too large for normal commits).
+The rendered Vietnamese review video (59 min, mascot "Bé Core", everyday analogies, predict-then-reveal moments, 12 game-style drills, chapter markers per module) is on the [Releases page](../../releases/latest) (too large for normal commits).
 
 ## Quiz
 - [`quiz/practice_quiz_vi.html`](quiz/practice_quiz_vi.html): Vietnamese, 395 multiple-choice questions + 16 essays, each with an answer and explanation.
 - [`quiz/practice_quiz.html`](quiz/practice_quiz.html): English version of the same bank.
+- Game layer: XP, levels, answer streaks, badges per module, toasts and confetti (progress is stored in your browser).
 - Study mode shows the answer immediately; exam mode hides it until you press Grade; the mock exam draws 50 MCQs (12 Ch.1–2, 14 chuong 3, 12 chuong 4, 12 chuong 5) + 2 essays with a 65-minute timer.
 - Math is rendered with [KaTeX](https://katex.org) (bundled in `quiz/katex/`; keep that folder next to the HTML files).
 

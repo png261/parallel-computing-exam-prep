@@ -3,6 +3,39 @@ from scene_utils import *
 from scene_utils import play_module_drills
 import heapq
 
+from fun_utils import make_mascot, make_bubble, make_hud, bounce, level_banner
+
+
+def person(color, r=0.28, mood="happy"):
+    """A person: circle head with a little face + tiny body. mood: happy | dizzy | sad | wow."""
+    body = RoundedRectangle(width=r * 1.5, height=r * 0.95, corner_radius=r * 0.3, fill_color=color,
+                            fill_opacity=0.6, stroke_color=TEXT_MAIN, stroke_width=1.5).move_to(DOWN * r * 1.5)
+    head = Circle(radius=r, fill_color=color, fill_opacity=1, stroke_color=TEXT_MAIN, stroke_width=2)
+    k = r * 0.12
+    eyes = VGroup()
+    for dx in (-0.36, 0.36):
+        c = RIGHT * dx * r + UP * 0.2 * r
+        if mood == "dizzy":
+            eyes.add(VGroup(Line(c + UL * k, c + DR * k, color=DARK, stroke_width=2.5),
+                            Line(c + UR * k, c + DL * k, color=DARK, stroke_width=2.5)))
+        elif mood == "wow":
+            eyes.add(Circle(radius=k * 1.3, fill_color=WHITE, fill_opacity=1, stroke_color=DARK, stroke_width=1.5).move_to(c))
+        else:
+            eyes.add(Dot(radius=k * 0.9, color=DARK).move_to(c))
+    if mood == "happy":
+        mouth = Arc(radius=r * 0.42, start_angle=PI * 1.15, angle=PI * 0.7, color=DARK, stroke_width=3).move_to(DOWN * 0.3 * r)
+    elif mood in ("sad", "dizzy"):
+        mouth = Arc(radius=r * 0.4, start_angle=PI * 0.15, angle=PI * 0.7, color=DARK, stroke_width=3).move_to(DOWN * 0.42 * r)
+    else:
+        mouth = Circle(radius=r * 0.16, fill_color="#7F1D1D", fill_opacity=1, stroke_color=DARK, stroke_width=2).move_to(DOWN * 0.38 * r)
+    return VGroup(body, head, eyes, mouth)
+
+
+def scribble(cx, cy, w, color, n=7):
+    pts = [np.array([cx - w / 2 + w * i / (n - 1), cy + (0.12 if i % 2 else -0.12), 0]) for i in range(n)]
+    return VMobject(color=color, stroke_width=3).set_points_as_corners(pts)
+
+
 TH = [CYAN, AMBER, EMERALD, VIOLET]
 DARK = "#0D1117"
 PINK = "#F472B6"
@@ -61,11 +94,363 @@ class Scene02SharedMem(Scene):
 
     def construct(self):
         setup_bg(self)
-        for fn in [self.seg_01, self.seg_02, self.seg_03, self.seg_09, self.seg_04, self.seg_05, self.seg_06, self.seg_10, self.seg_07, self.seg_11, self.seg_12, self.seg_16, self.seg_17, self.seg_18, self.seg_19, self.seg_20, self.seg_21, self.seg_22, self.seg_24, self.seg_25, self.seg_26, self.seg_27, self.seg_28, self.seg_29, self.seg_30, self.seg_31]:
+        for fn in [self.seg_01, self.seg_02, self.seg_03, self.seg_40, self.seg_09, self.seg_41, self.seg_04, self.seg_05, self.seg_42, self.seg_06, self.seg_10, self.seg_07, self.seg_11, self.seg_43, self.seg_12, self.seg_16, self.seg_17, self.seg_18, self.seg_19, self.seg_20, self.seg_21, self.seg_22, self.seg_24, self.seg_25, self.seg_26, self.seg_27, self.seg_28, self.seg_29, self.seg_30, self.seg_44, self.seg_31, self.seg_45]:
             self.cap = None
             fn()
             clear_stage(self)
         play_module_drills(self, "M2", "C++ threads / OpenMP")
+
+
+    # ---------- fun-layer helpers (imperative style) ----------
+    def P(self, anims, rt=0.8):
+        if not isinstance(anims, (list, tuple)):
+            anims = [anims]
+        self.play(*anims, run_time=rt)
+        self.el += rt
+
+    def pause(self, t):
+        self.wait(t)
+        self.el += t
+
+    def run_voiced(self, seg_id, body):
+        wav = TTS_DIR / f"{seg_id}.wav"
+        if wav.exists():
+            self.add_sound(str(wav))
+        self.el = 0.0
+        self.bw = 4.6
+        body()
+        self.wait(max(0.35, get_duration(seg_id) - self.el + 0.35))
+
+    def hop(self):
+        self.play(bounce(self.m), run_time=0.5)
+        self.add(self.m)
+        self.el += 0.5
+
+    def mood(self, mood, scale=0.7, pos=None):
+        new = make_mascot(mood, scale).move_to(self.m.get_center() if pos is None else pos)
+        a = ReplacementTransform(self.m, new)
+        self.m = new
+        return a
+
+    def say(self, text, pos=None, color=CYAN, width=None):
+        new = make_bubble(text, width or self.bw, color).move_to(self.bb.get_center() if pos is None else pos)
+        a = ReplacementTransform(self.bb, new)
+        self.bb = new
+        return a
+
+    def face(self, p, mood, color, r=0.3):
+        n = person(color, r, mood).move_to(p)
+        return n, ReplacementTransform(p, n)
+
+    def finale(self, hdr, pairs, chot, lc=AMBER, rc=CYAN):
+        """Animated mapping analogy -> technical term, then the 'chot' line."""
+        gone = [x for x in self.mobjects if x is not hdr and x is not self.m]
+        self.cap = None
+        ttl = tx("Chuyện vui  →  thuật ngữ thật", 22, TEXT_MUTED, bold=True).move_to(RIGHT * 0.9 + UP * 2.3)
+        self.P([*[FadeOut(x) for x in gone], self.mood("cheer", 0.8, LEFT * 5.5 + DOWN * 0.2), FadeIn(ttl)], 0.8)
+        for i, (a, b, *m_) in enumerate(pairs):
+            y = 1.4 - 0.95 * i
+            l = labeled(a, 4.3, 0.7, lc, 20, bold=True).move_to(LEFT * 1.9 + UP * y)
+            r = labeled(b, 4.5, 0.7, rc, 20, MONO if (m_ and m_[0]) else None, bold=True).move_to(RIGHT * 3.4 + UP * y)
+            ar = Arrow(l.get_right(), r.get_left(), buff=0.08, color=TEXT_MUTED, stroke_width=3, max_tip_length_to_length_ratio=0.25)
+            self.P([FadeIn(l, shift=RIGHT * 0.2)], 0.5)
+            self.P([GrowArrow(ar), FadeIn(r, shift=LEFT * 0.2)], 0.6)
+        self.P([self.setcap(chot, AMBER, 22)], 0.7)
+        self.hop()
+        self.pause(0.8)
+
+
+    # ============================================================ FUN LAYER
+    # ------------------------------------------------------------ 02_40
+    def seg_40(self):
+        self.run_voiced("02_40", self._seg_40)
+
+    def _seg_40(self):
+        hdr = make_header("Chuyện vui: hai thu ngân, một cuốn sổ", "data race", CORAL)
+        ledger = rbox(3.4, 1.7, AMBER).move_to(UP * 1.1)
+        lt = tx("SỔ: bánh còn", 18, TEXT_MUTED).move_to(ledger.get_top() + DOWN * 0.32)
+        lv = mono("5", 46, AMBER, bold=True).move_to(ledger.get_center() + DOWN * 0.22)
+        ca = person(CYAN, 0.32).move_to(LEFT * 4.6 + UP * 1.2)
+        cb = person(VIOLET, 0.32).move_to(RIGHT * 4.6 + UP * 1.2)
+        na = tx("Thu ngân A", 17, CYAN, bold=True).next_to(ca, DOWN, buff=0.15)
+        nb = tx("Thu ngân B", 17, VIOLET, bold=True).next_to(cb, DOWN, buff=0.15)
+        ma = mono("nhớ: _", 20).move_to(LEFT * 4.6 + DOWN * 0.15)
+        mb = mono("nhớ: _", 20).move_to(RIGHT * 4.6 + DOWN * 0.15)
+        self.m = make_mascot("think", 0.7).move_to(LEFT * 1.4 + DOWN * 1.55)
+        self.bb = make_bubble("Đoán thử! Sổ còn mấy cái?", 4.8, CYAN).move_to(RIGHT * 2.2 + DOWN * 1.5)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([FadeIn(ledger), FadeIn(lt), FadeIn(lv), FadeIn(ca), FadeIn(cb), FadeIn(na), FadeIn(nb), FadeIn(ma), FadeIn(mb)], 0.9)
+        self.P([FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1), self.setcap("Hai khách cùng mua 1 cái, ở hai quầy, cùng lúc", AMBER)], 0.8)
+        self.pause(3.0)  # Doan thu!
+        t1 = tok("5", CYAN).move_to(ledger)
+        t2 = tok("5", VIOLET).move_to(ledger)
+        ma2 = mono("nhớ: 5", 20, CYAN).move_to(ma)
+        mb2 = mono("nhớ: 5", 20, VIOLET).move_to(mb)
+        self.P([FadeIn(t1, scale=0.8), FadeIn(t2, scale=0.8), self.setcap("Cả hai cùng liếc sổ: còn 5", TEXT_MAIN)], 0.4)
+        self.P([t1.animate.move_to(ma), t2.animate.move_to(mb)], 0.9)
+        self.P([FadeOut(t1), FadeOut(t2), ReplacementTransform(ma, ma2), ReplacementTransform(mb, mb2)], 0.4)
+        ma3 = mono("5-1 = 4", 20, CYAN).move_to(ma2)
+        mb3 = mono("5-1 = 4", 20, VIOLET).move_to(mb2)
+        self.P([ReplacementTransform(ma2, ma3), ReplacementTransform(mb2, mb3), self.setcap("Cả hai cùng tính: 5 - 1 = 4", TEXT_MAIN)], 0.8)
+        w1 = tok("4", CYAN).move_to(ma3)
+        w2 = tok("4", VIOLET).move_to(mb3)
+        lv4 = mono("4", 46, AMBER, bold=True).move_to(lv)
+        self.P([FadeIn(w1)], 0.2)
+        self.P([w1.animate.move_to(ledger)], 0.7)
+        self.P([FadeOut(w1), ReplacementTransform(lv, lv4), self.setcap("A ghi 4 vào sổ", CYAN)], 0.4)
+        self.P([FadeIn(w2)], 0.2)
+        self.P([w2.animate.move_to(ledger)], 0.7)
+        self.P([FadeOut(w2), Indicate(lv4, color=CORAL, scale_factor=1.4), ledger.animate.set_stroke(CORAL, 4),
+                self.setcap("B ghi 4 đè lên: sổ còn 4, nhưng thực tế phải là 3!", CORAL)], 0.9)
+        self.P([self.mood("wow"), self.say("Phải còn 3 mới đúng! Chóng mặt quá!", color=CORAL)], 0.6)
+        self.hop()
+        self.pause(0.6)
+        self.finale(hdr, [("cuốn sổ giấy chung", "biến dùng chung (counter)"),
+                          ("hai thu ngân cùng ghi", "hai luồng: đọc - sửa - ghi"),
+                          ("ghi đè, mất một lần bán", "data race: mất cập nhật")],
+                    "Chốt: hai luồng cùng ghi một biến, không đồng bộ = data race", AMBER, CORAL)
+
+    # ------------------------------------------------------------ 02_41
+    def seg_41(self):
+        self.run_voiced("02_41", self._seg_41)
+
+    def _seg_41(self):
+        hdr = make_header("Chuyện vui: một chìa khóa, một nhát dấu", "mutex · atomic", VIOLET)
+        door = rbox(2.0, 2.3, VIOLET).move_to(RIGHT * 0.3 + UP * 0.8)
+        dl = tx("phòng 1 người", 16, VIOLET, bold=True).move_to(door.get_top() + DOWN * 0.3)
+        key = VGroup(Circle(radius=0.15, fill_color=AMBER, fill_opacity=1, stroke_width=0),
+                     Rectangle(width=0.38, height=0.07, fill_color=AMBER, fill_opacity=1, stroke_width=0).shift(RIGHT * 0.26))
+        key.move_to(LEFT * 1.2 + UP * 2.0)
+        kl = tx("chìa", 15, AMBER, bold=True).next_to(key, DOWN, buff=0.08)
+        ps = [person(TH[i], 0.28).move_to(LEFT * (5.5 - 1.2 * i) + UP * 0.5) for i in range(3)]
+        self.m = make_mascot("happy", 0.6).move_to(LEFT * 4.6 + DOWN * 1.5)
+        self.bb = make_bubble("Ai cầm chìa mới được vào!", 4.2, AMBER).move_to(LEFT * 1.3 + DOWN * 1.5)
+        card = rbox(1.8, 1.2, EMERALD).move_to(RIGHT * 4.6 + UP * 0.2)
+        cv5 = mono("5", 34, EMERALD, bold=True).move_to(card)
+        cv6 = mono("6", 34, EMERALD, bold=True).move_to(card)
+        stamp = VGroup(Rectangle(width=0.28, height=0.5, fill_color=TEXT_MUTED, fill_opacity=1, stroke_width=0),
+                       Rectangle(width=1.0, height=0.3, fill_color=CORAL, fill_opacity=1, stroke_width=0).shift(DOWN * 0.38))
+        stamp.move_to(RIGHT * 4.6 + UP * 1.9)
+        sl = tx("con dấu = atomic", 17, CORAL, bold=True).next_to(card, DOWN, buff=0.2)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([FadeIn(door), FadeIn(dl), FadeIn(key), FadeIn(kl), *[FadeIn(p) for p in ps]], 0.8)
+        self.P([FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1), self.setcap("Chỉ người cầm chìa mới được vào phòng", AMBER)], 0.8)
+        self.P([key.animate.move_to(ps[0].get_center() + UP * 0.75), FadeOut(kl)], 0.7)
+        n1, a1 = self.face(ps[1], "sad", TH[1], 0.28)
+        n2, a2 = self.face(ps[2], "sad", TH[2], 0.28)
+        self.P([ps[0].animate.move_to(door.get_center() + DOWN * 0.2), key.animate.move_to(door.get_center() + UP * 0.45), a1, a2,
+                self.setcap("Người khác xếp hàng chờ", CORAL)], 1.0)
+        ps[1], ps[2] = n1, n2
+        self.P([ps[0].animate.move_to(LEFT * 1.8 + UP * 0.5), key.animate.move_to(LEFT * 1.2 + UP * 2.0)], 0.8)
+        self.P([ps[1].animate.move_to(door.get_center() + DOWN * 0.2), self.setcap("Ra khỏi phòng thì trả chìa: người kế tiếp vào", EMERALD)], 0.9)
+        self.P([ps[1].animate.move_to(LEFT * 2.6 + UP * 0.5), self.mood("cheer"), self.say("Một lần một người: gọn gàng!", color=EMERALD)], 0.8)
+        self.P([FadeIn(card), FadeIn(cv5), FadeIn(stamp), FadeIn(sl), self.setcap("Việc chỉ là một nhát? Dùng con dấu!", CORAL)], 0.8)
+        self.P([stamp.animate.shift(DOWN * 0.45)], 0.25)
+        self.P([stamp.animate.shift(UP * 0.45), ReplacementTransform(cv5, cv6), Flash(card, color=CORAL, flash_radius=1.0)], 0.5)
+        self.P([self.setcap("Một nhát xong luôn: không ai chen vào giữa", CORAL)], 0.8)
+        self.hop()
+        self.finale(hdr, [("chìa khóa duy nhất", "mutex: lock / unlock", True),
+                          ("phòng chỉ 1 người", "đoạn găng (critical section)"),
+                          ("một nhát đóng dấu", "std::atomic: một phép đơn")],
+                    "Chốt: mutex bảo vệ cả đoạn găng, atomic bảo vệ một phép đơn", AMBER, VIOLET)
+
+    # ------------------------------------------------------------ 02_42
+    def seg_42(self):
+        self.run_voiced("02_42", self._seg_42)
+
+    def _seg_42(self):
+        hdr = make_header("Chuyện vui: hai người, một trang vở", "false sharing", CORAL)
+        page = rbox(6.0, 2.0, AMBER, fill="#1F2937").move_to(UP * 0.9)
+        divl = DashedLine(page.get_top(), page.get_bottom(), color=TEXT_MUTED, stroke_width=2)
+        lc = tx("ô của An", 16, CYAN, bold=True).move_to(page.get_center() + LEFT * 1.5 + UP * 0.7)
+        rc = tx("ô của Bình", 16, VIOLET, bold=True).move_to(page.get_center() + RIGHT * 1.5 + UP * 0.7)
+        pl = tx("1 trang vở = 1 cache line (64 byte)", 17, TEXT_MUTED).move_to(DOWN * 0.45)
+        an = person(CYAN, 0.32).move_to(LEFT * 4.7 + UP * 1.0)
+        bi = person(VIOLET, 0.32).move_to(RIGHT * 4.7 + UP * 1.0)
+        self.m = make_mascot("think", 0.65).move_to(LEFT * 3.6 + DOWN * 1.6)
+        self.bb = make_bubble("Đoán thử! Không ai viết đè ai, có chậm không?", 6.2, CYAN).move_to(RIGHT * 1.3 + DOWN * 1.6)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([FadeIn(page), Create(divl), FadeIn(lc), FadeIn(rc), FadeIn(pl), FadeIn(an), FadeIn(bi)], 0.9)
+        self.P([FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1),
+                self.setcap("An chỉ viết ô trái, Bình chỉ viết ô phải: không đụng nhau", AMBER)], 0.8)
+        self.pause(3.0)  # Doan thu!
+        sa = scribble(page.get_center()[0] - 1.5, 0.75, 1.6, CYAN)
+        sb = scribble(page.get_center()[0] + 1.5, 0.75, 1.6, VIOLET)
+        smudge = Rectangle(width=6.0, height=2.0, fill_color=CORAL, fill_opacity=0.5, stroke_width=0).move_to(page)
+        self.P([Create(sa), self.setcap("An viết xong một dòng...", CYAN)], 0.6)
+        bi2, ab = self.face(bi, "dizzy", VIOLET, 0.32)
+        self.P([FadeIn(smudge), ab, self.setcap("...cả trang bị lem! Bình phải chép lại", CORAL)], 0.6)
+        bi = bi2
+        self.P([FadeOut(smudge), Create(sb)], 0.5)
+        an2, ac = self.face(an, "dizzy", CYAN, 0.32)
+        self.P([FadeIn(smudge), ac, self.setcap("Bình viết thì An lại bị lem: lem qua lem lại", CORAL)], 0.6)
+        an = an2
+        self.P([FadeOut(smudge)], 0.3)
+        big = tx("CHẬM 20 LẦN!", 38, CORAL, bold=True).move_to(DOWN * 0.45)
+        self.P([self.mood("wow"), self.say("Chậm 20 lần (ví dụ 8 luồng)!", color=CORAL), ReplacementTransform(pl, big)], 0.7)
+        self.hop()
+        pg1 = rbox(2.7, 2.0, CYAN, fill="#1F2937").move_to(LEFT * 1.6 + UP * 0.9)
+        pg2 = rbox(2.7, 2.0, VIOLET, fill="#1F2937").move_to(RIGHT * 1.6 + UP * 0.9)
+        fx = mono("alignas(64)", 24, EMERALD, bold=True).move_to(DOWN * 0.45)
+        an3, ah = self.face(an, "happy", CYAN, 0.32)
+        bi3, bh = self.face(bi, "happy", VIOLET, 0.32)
+        self.P([ReplacementTransform(page, VGroup(pg1, pg2)), FadeOut(divl), FadeOut(sa), FadeOut(sb), FadeOut(lc), FadeOut(rc),
+                ReplacementTransform(big, fx), ah, bh, self.mood("cheer"), self.say("Xé ra, mỗi người một trang!", color=EMERALD),
+                self.setcap("Mỗi người một trang riêng: hết lem, nhanh trở lại", EMERALD)], 1.0)
+        self.hop()
+        self.finale(hdr, [("trang vở 64 byte", "cache line"),
+                          ("mỗi người một ô", "mỗi luồng ghi một phần tử"),
+                          ("vết lem cả trang", "cache line bị vô hiệu"),
+                          ("xé thành 2 trang", "đệm alignas(64)", True)],
+                    "Chốt: false sharing, sửa bằng đệm 64 byte", AMBER, CORAL)
+
+    # ------------------------------------------------------------ 02_43
+    def seg_43(self):
+        self.run_voiced("02_43", self._seg_43)
+
+    def _seg_43(self):
+        hdr = make_header("Chuyện vui: phát bài tập về nhà", "schedule", AMBER)
+        u, x0 = 0.27, -5.1
+        def bar(t0, t1, y, col, n):
+            r = Rectangle(width=(t1 - t0) * u, height=0.5, fill_color=col, fill_opacity=0.95, stroke_color=DARK, stroke_width=1.5)
+            r.move_to(RIGHT * (x0 + (t0 + t1) / 2 * u) + UP * y)
+            t = tx(str(n), 15, DARK, bold=True).move_to(r)
+            return VGroup(r, t)
+        ys = [1.75, 1.05, -0.3, -1.0]
+        pa = [person(CYAN, 0.2).move_to(LEFT * 6.1 + UP * ys[i]) for i in (0, 2)]
+        pb = [person(AMBER, 0.2).move_to(LEFT * 6.1 + UP * ys[i]) for i in (1, 3)]
+        t1 = tx("Cách 1: cô phát trước (An: trang 1-4, Bình: trang 5-8)", 18, TEXT_MAIN, bold=True, maxw=7.4).move_to(LEFT * 1.6 + UP * 2.4)
+        t2 = tx("Cách 2: ai rảnh thì lấy trang kế tiếp", 18, TEXT_MAIN, bold=True, maxw=7.4).move_to(LEFT * 2.6 + UP * 0.45)
+        sA = [bar(0, 1, ys[0], CYAN, 1), bar(1, 3, ys[0], CYAN, 2)]
+        sA = [bar(a, b, ys[0], CYAN, n) for a, b, n in [(0, 1, 1), (1, 3, 2), (3, 6, 3), (6, 10, 4)]]
+        sB = [bar(a, b, ys[1], AMBER, n) for a, b, n in [(0, 5, 5), (5, 11, 6), (11, 18, 7), (18, 26, 8)]]
+        idle = Rectangle(width=16 * u, height=0.5, fill_color=CORAL, fill_opacity=0.25, stroke_width=0).move_to(RIGHT * (x0 + 18 * u) + UP * ys[0])
+        idl = tx("ngồi chơi", 15, CORAL, bold=True).move_to(idle)
+        dA = [bar(a, b, ys[2], CYAN, n) for a, b, n in [(0, 1, 1), (1, 4, 3), (4, 9, 5), (9, 16, 7)]]
+        dB = [bar(a, b, ys[3], AMBER, n) for a, b, n in [(0, 2, 2), (2, 6, 4), (6, 12, 6), (12, 20, 8)]]
+        f1 = DashedLine(RIGHT * (x0 + 26 * u) + UP * 0.75, RIGHT * (x0 + 26 * u) + UP * 2.05, color=CORAL, stroke_width=2.5)
+        f1l = tx("26", 18, CORAL, bold=True).next_to(f1, UP, buff=0.05)
+        f2 = DashedLine(RIGHT * (x0 + 20 * u) + DOWN * 1.3, RIGHT * (x0 + 20 * u) + UP * 0.0, color=EMERALD, stroke_width=2.5)
+        f2l = tx("20", 18, EMERALD, bold=True).next_to(f2, UP, buff=0.05)
+        self.m = make_mascot("think", 0.8).move_to(RIGHT * 4.6 + DOWN * 0.1)
+        self.bw = 3.3
+        self.bb = make_bubble("8 trang, trang sau khó hơn!", 3.3, CYAN, 18).move_to(RIGHT * 4.5 + UP * 1.5)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([*[FadeIn(p) for p in pa + pb], FadeIn(t1), FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1),
+                self.setcap("An (xanh) và Bình (vàng): trang thứ i mất i phút", AMBER)], 0.9)
+        self.P([LaggedStart(*[GrowFromEdge(g, LEFT) for g in sA + sB], lag_ratio=0.15)], 1.8)
+        self.P([FadeIn(idle), FadeIn(idl), Create(f1), FadeIn(f1l)], 0.7)
+        self.P([self.mood("sad"), self.say("An xong sớm, Bình tới phút 26", color=CORAL), self.setcap("Chia trước: người xong sớm ngồi chơi", CORAL)], 0.8)
+        self.P([FadeIn(t2)], 0.4)
+        self.P([LaggedStart(*[GrowFromEdge(g, LEFT) for g in dA + dB], lag_ratio=0.15)], 2.0)
+        self.P([Create(f2), FadeIn(f2l)], 0.6)
+        self.P([self.mood("cheer"), self.say("Cả hai xong gần như cùng lúc!", color=EMERALD), self.setcap("Ai rảnh lấy tiếp: xong ở phút 20, nhanh hơn", EMERALD)], 0.8)
+        self.hop()
+        self.finale(hdr, [("cô phát trước từng khối", "schedule(static)", True),
+                          ("ai rảnh lấy trang kế", "schedule(dynamic)", True),
+                          ("mỗi lần xin trang tốn công", "chi phí đồng bộ khi lấy việc")],
+                    "Chốt: tải đều dùng static, tải lệch dùng dynamic", AMBER, AMBER)
+
+    # ------------------------------------------------------------ 02_44
+    def seg_44(self):
+        self.run_voiced("02_44", self._seg_44)
+
+    def _seg_44(self):
+        hdr = make_header("Chuyện vui: đừng thuê thợ cho việc một phút", "task cutoff", VIOLET)
+        u, x0 = 70, -3.0
+        ys = [1.6, 0.35, -0.9]
+        labs = [VGroup(mono("cutoff 10^3", 16, CORAL, bold=True), tx("≈ 130 000 task", 15, TEXT_MUTED)).arrange(DOWN, aligned_edge=LEFT, buff=0.06),
+                VGroup(mono("cutoff 10^5", 16, EMERALD, bold=True), tx("≈ 1000 task", 15, TEXT_MUTED)).arrange(DOWN, aligned_edge=LEFT, buff=0.06),
+                VGroup(mono("cutoff 10^8", 16, AMBER, bold=True), tx("1 task", 15, TEXT_MUTED)).arrange(DOWN, aligned_edge=LEFT, buff=0.06)]
+        for l, y in zip(labs, ys):
+            l.move_to(LEFT * 4.8 + UP * y)
+        w1 = 0.047 * u
+        n = 22
+        pairs = VGroup()
+        for i in range(n):
+            pw = w1 / n
+            pairs.add(Rectangle(width=pw * 0.65, height=0.5, fill_color=CORAL, fill_opacity=1, stroke_width=0).move_to(RIGHT * (x0 + pw * i + pw * 0.325) + UP * ys[0]))
+            pairs.add(Rectangle(width=pw * 0.35, height=0.5, fill_color=EMERALD, fill_opacity=1, stroke_width=0).move_to(RIGHT * (x0 + pw * i + pw * 0.825) + UP * ys[0]))
+        w2 = 0.012 * u
+        lanes = VGroup(*[Rectangle(width=w2, height=0.0625, fill_color=EIGHT[i], fill_opacity=1, stroke_width=0).move_to(
+            RIGHT * (x0 + w2 / 2) + UP * (ys[1] + 0.25 - 0.0625 * (i + 0.5))) for i in range(8)])
+        w3 = 0.037 * u
+        one = Rectangle(width=w3, height=0.5, fill_color=AMBER, fill_opacity=1, stroke_width=0).move_to(RIGHT * (x0 + w3 / 2) + UP * ys[2])
+        v = [tx("0,047 s", 18, CORAL, bold=True).move_to(RIGHT * (x0 + w1 + 0.65) + UP * ys[0]),
+             tx("0,012 s: nhanh nhất", 18, EMERALD, bold=True).move_to(RIGHT * (x0 + w2 + 1.35) + UP * ys[1]),
+             tx("0,037 s", 18, AMBER, bold=True).move_to(RIGHT * (x0 + w3 + 0.65) + UP * ys[2])]
+        lg1 = VGroup(Square(0.18, fill_color=CORAL, fill_opacity=1, stroke_width=0), tx("tiền môi giới (tạo task)", 16, TEXT_MUTED)).arrange(RIGHT, buff=0.12)
+        lg2 = VGroup(Square(0.18, fill_color=EMERALD, fill_opacity=1, stroke_width=0), tx("việc thật", 16, TEXT_MUTED)).arrange(RIGHT, buff=0.12)
+        lg = VGroup(lg1, lg2).arrange(RIGHT, buff=0.5).move_to(LEFT * 1.0 + DOWN * 1.95)
+        self.m = make_mascot("think", 0.8).move_to(RIGHT * 4.9 + DOWN * 0.3)
+        self.bw = 3.3
+        self.bb = make_bubble("Việc 1 phút mà thuê thợ?", 3.3, CYAN, 18).move_to(RIGHT * 4.6 + UP * 1.4)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1), FadeIn(lg), self.setcap("Mỗi task = thuê một thợ, phải trả tiền môi giới", AMBER)], 0.8)
+        self.P([FadeIn(labs[0]), LaggedStart(*[GrowFromEdge(p, LEFT) for p in pairs], lag_ratio=0.03)], 1.6)
+        self.P([FadeIn(v[0]), self.mood("sad"), self.say("Môi giới đắt hơn tiền công!", color=CORAL), self.setcap("Việc quá nhỏ: chậm hơn cả làm một mình", CORAL)], 0.8)
+        self.P([FadeIn(labs[1]), LaggedStart(*[GrowFromEdge(l, LEFT) for l in lanes], lag_ratio=0.1), FadeIn(v[1])], 1.2)
+        self.P([self.mood("cheer"), self.say("8 thợ, việc vừa đủ: nhanh nhất!", color=EMERALD), self.setcap("Cutoff vừa phải: đủ task chia cho 8 luồng", EMERALD)], 0.8)
+        self.hop()
+        self.P([FadeIn(labs[2]), GrowFromEdge(one, LEFT), FadeIn(v[2]), self.mood("think"), self.say("Quá lớn thì như làm một mình", color=AMBER),
+                self.setcap("Cutoff 10^8: chỉ 1 task = chạy tuần tự", AMBER)], 1.0)
+        self.finale(hdr, [("thuê một thợ cho mỗi việc", "tạo một task"),
+                          ("tiền môi giới", "chi phí quản lý task"),
+                          ("việc nhỏ tự làm luôn", "dưới cutoff: chạy tuần tự")],
+                    "Chốt: đặt cutoff để task đủ lớn, đủ ít", AMBER, VIOLET)
+
+    # ------------------------------------------------------------ 02_45
+    def seg_45(self):
+        self.run_voiced("02_45", self._seg_45)
+
+    def _seg_45(self):
+        hdr = make_header("Chuyện vui: tám người, một cửa hẹp", "memory-bound", AMBER)
+        top = Rectangle(width=0.3, height=1.7, fill_color=BORDER_DIM, fill_opacity=1, stroke_color=TEXT_MUTED, stroke_width=2).move_to(LEFT * 3.4 + UP * 1.75)
+        bot = Rectangle(width=0.3, height=1.0, fill_color=BORDER_DIM, fill_opacity=1, stroke_color=TEXT_MUTED, stroke_width=2).move_to(LEFT * 3.4 + DOWN * 0.4)
+        door = tx("cửa hẹp", 16, CORAL, bold=True).move_to(LEFT * 3.4 + UP * 0.45 + RIGHT * 0.0).shift(UP * 0.0)
+        door.next_to(top, DOWN, buff=0.0).shift(RIGHT * 0.0)
+        door.move_to(LEFT * 3.4 + DOWN * 1.05)
+        kho = rbox(1.9, 1.8, TEAL).move_to(LEFT * 1.4 + UP * 0.5)
+        kl = tx("kho (RAM)", 17, TEAL, bold=True).move_to(kho.get_top() + DOWN * 0.3)
+        ws = VGroup(*[person(EIGHT[i], 0.16).move_to(LEFT * (5.9 - 0.7 * (i % 2)) + UP * (1.8 - 0.75 * (i // 2))) for i in range(8)])
+        bxs = VGroup(*[Square(0.22, fill_color=AMBER, fill_opacity=1, stroke_color=DARK, stroke_width=1).move_to(w[1].get_center() + RIGHT * 0.3) for w in ws])
+        # chart
+        base = DOWN * 0.7
+        data = [(1, 1.00), (2, 1.95), (4, 2.88), (8, 3.00)]
+        u = 0.3
+        bars, ghosts, vls, tls = VGroup(), VGroup(), VGroup(), VGroup()
+        for i, (t, s) in enumerate(data):
+            x = 2.2 + 1.15 * i
+            gh = Rectangle(width=0.8, height=u * t, stroke_color=TEXT_MUTED, stroke_width=1.5, fill_opacity=0).move_to(RIGHT * x + base, aligned_edge=DOWN)
+            gh.align_to(base, DOWN)
+            b = Rectangle(width=0.8, height=u * s, fill_color=EMERALD if t < 8 else AMBER, fill_opacity=0.95, stroke_width=0).move_to(RIGHT * x + base, aligned_edge=DOWN)
+            b.align_to(base, DOWN)
+            bars.add(b)
+            ghosts.add(gh)
+            vls.add(tx(f"{s:.2f}".replace(".", ",") + "×", 16, TEXT_MAIN, bold=True).next_to(b, UP, buff=0.06))
+            tls.add(tx(f"{t}", 17, TEXT_MUTED).move_to(RIGHT * x + base + DOWN * 0.25))
+        ax = Line(RIGHT * 1.5 + base, RIGHT * 6.3 + base, color=TEXT_MUTED, stroke_width=2)
+        axl = tx("số luồng (người khuân)", 15, TEXT_MUTED).move_to(RIGHT * 3.9 + base + DOWN * 0.6)
+        q = tx("?", 80, AMBER, bold=True).move_to(RIGHT * 4.0 + UP * 0.6)
+        self.m = make_mascot("think", 0.6).move_to(LEFT * 5.0 + DOWN * 1.9)
+        self.bb = make_bubble("Đoán thử: 8 người nhanh gấp mấy lần 1 người?", 6.4, CYAN, 20).move_to(LEFT * 0.4 + DOWN * 1.9)
+        self.P([FadeIn(hdr)], 0.4)
+        self.P([FadeIn(top), FadeIn(bot), FadeIn(door), FadeIn(kho), FadeIn(kl), FadeIn(ws), FadeIn(bxs), FadeIn(ax), FadeIn(axl), FadeIn(tls),
+                FadeIn(ghosts), FadeIn(q)], 0.9)
+        self.P([FadeIn(self.m, scale=0.8), FadeIn(self.bb, shift=UP * 0.1), self.setcap("Mỗi người khuân thùng hàng qua một cửa hẹp vào kho", AMBER)], 0.8)
+        self.pause(3.0)  # Doan thu!
+        self.P([FadeOut(q), bxs.animate.shift(RIGHT * 1.5), ws.animate.shift(RIGHT * 0.8)], 0.8)
+        self.P([GrowFromEdge(bars[0], DOWN), FadeIn(vls[0]), bxs[0].animate.move_to(kho), bxs[1].animate.move_to(kho)], 0.7)
+        self.P([FadeOut(bxs[0]), FadeOut(bxs[1]), GrowFromEdge(bars[1], DOWN), FadeIn(vls[1]), self.setcap("Cửa chỉ cho vài thùng đi qua mỗi lượt", CORAL)], 0.7)
+        self.P([GrowFromEdge(bars[2], DOWN), FadeIn(vls[2]), GrowFromEdge(bars[3], DOWN), FadeIn(vls[3])], 0.9)
+        self.P([self.mood("wow"), self.say("Chỉ khoảng 3 lần: kẹt ở cửa hẹp!", color=AMBER), Indicate(bars[3], color=CORAL)], 0.7)
+        self.P([self.setcap("8 luồng đọc 1,6 GB / 0,024 s = khoảng 67 GB/s: gần trần băng thông", AMBER, 20)], 0.6)
+        self.hop()
+        self.pause(0.8)
+        self.finale(hdr, [("cửa kho hẹp", "băng thông bộ nhớ (RAM)"),
+                          ("thêm người khuân", "thêm luồng / thêm lõi"),
+                          ("lõi rảnh đứng chờ hàng", "memory-bound")],
+                    "Chốt: memory-bound: thêm lõi không giúp", AMBER, TEAL)
 
     # ------------------------------------------------------------ 02_01
     def seg_01(self):
@@ -754,29 +1139,56 @@ class Scene02SharedMem(Scene):
     # ------------------------------------------------------------ 02_24
     def seg_24(self):
         hdr = make_header("C++20: bốn công cụ đồng bộ", "C++ threads", AMBER)
-        names = [("mutex", "một luồng / đoạn găng", CYAN), ("barrier", "chờ đủ N luồng", AMBER),
-                 ("condition_variable", "chờ điều kiện", EMERALD), ("counting_semaphore", "tối đa k luồng", VIOLET)]
-        rows = VGroup()
-        for i, (a, b, c) in enumerate(names):
-            r1 = labeled(a, 3.3, 0.55, c, 16, MONO, bold=True)
-            r2 = tx(b, 18, TEXT_MAIN).next_to(r1, RIGHT, buff=0.2)
-            g = VGroup(r1, r2).move_to(LEFT * 3.2 + UP * (1.9 - 0.8 * i))
-            g.align_to(LEFT * 6.2, LEFT)
-            rows.add(g)
-        res = rbox(3.0, 2.2, VIOLET).move_to(RIGHT * 4.0 + UP * 0.9)
-        rl = tx("tài nguyên, k = 2", 17, VIOLET, bold=True).move_to(res.get_top() + DOWN * 0.3)
-        ts = [labeled(f"T{i}", 0.8, 0.5, TH[i], 18, bold=True).move_to(RIGHT * 1.0 + UP * (1.8 - 0.65 * i)) for i in range(4)]
-        slot = [RIGHT * 3.4 + DOWN * 0.1 + UP * 0.9 * 0, RIGHT * 4.6 + DOWN * 0.1 + UP * 0.9 * 0]
-        slot = [RIGHT * 3.4 + UP * 0.6, RIGHT * 4.6 + UP * 0.6]
-        wait = tx("T2, T3 chờ", 18, CORAL, bold=True).move_to(RIGHT * 4.0 + DOWN * 1.0)
+        specs = [("mutex", CYAN, LEFT * 3.35 + UP * 1.35), ("barrier", AMBER, RIGHT * 3.35 + UP * 1.35),
+                 ("condition_variable", EMERALD, LEFT * 3.35 + DOWN * 0.95), ("counting_semaphore", VIOLET, RIGHT * 3.35 + DOWN * 0.95)]
+        boxes, titles = [], []
+        for n, col, c in specs:
+            boxes.append(rbox(6.2, 2.05, col).move_to(c))
+            titles.append(mono(n, 17, col, bold=True).move_to(c + UP * 0.75 + LEFT * 2.9, aligned_edge=LEFT))
+        def dots(c, xs, dy=-0.2):
+            return [Dot(radius=0.17, color=TH[i]).move_to(c + RIGHT * x + UP * dy) for i, x in enumerate(xs)]
+        wait_ = lambda d: d.animate.set_stroke(CORAL, 4)
+        # mutex
+        c0 = specs[0][2]
+        door = rbox(0.9, 1.0, VIOLET).move_to(c0 + RIGHT * 1.9 + DOWN * 0.2)
+        m_d = dots(c0, [-2.4, -1.7, -1.0])
+        # barrier
+        c1 = specs[1][2]
+        line = DashedLine(c1 + RIGHT * 0.8 + UP * 0.55, c1 + RIGHT * 0.8 + DOWN * 0.95, color=AMBER, stroke_width=3)
+        b_d = [Dot(radius=0.17, color=TH[i]).move_to(c1 + RIGHT * -2.4 + UP * (0.15 - 0.4 * i)) for i in range(3)]
+        # condition variable
+        c2 = specs[2][2]
+        slots = [rbox(0.55, 0.55, EMERALD).move_to(c2 + RIGHT * (0.9 + 0.8 * i) + DOWN * 0.2) for i in range(3)]
+        item = Square(0.3, fill_color=AMBER, fill_opacity=1, stroke_width=0).move_to(slots[0])
+        bell = VGroup(Circle(radius=0.22, fill_color=AMBER, fill_opacity=1, stroke_width=0), tx("!", 22, DARK, bold=True)).move_to(c2 + LEFT * 0.4 + UP * 0.1)
+        zz = tx("zzz", 16, TEXT_MUTED).move_to(c2 + LEFT * 2.2 + UP * 0.2)
+        w_d = Dot(radius=0.17, color=TH[0]).move_to(c2 + LEFT * 2.2 + DOWN * 0.2)
+        # semaphore
+        c3 = specs[3][2]
+        kk = tx("k = 2", 16, VIOLET, bold=True).move_to(c3 + RIGHT * 2.45 + UP * 0.75)
+        sl = [rbox(0.62, 0.62, VIOLET).move_to(c3 + RIGHT * (1.5 + 0.9 * i) + DOWN * 0.2) for i in range(2)]
+        s_d = dots(c3, [-2.6, -1.9, -1.2, -0.5])
         steps = [([FadeIn(hdr)], 0.4),
-                 ([FadeIn(rows, lag_ratio=0.25)], 1.6),
-                 ([FadeIn(res), FadeIn(rl), *[FadeIn(t) for t in ts]], 0.8),
-                 ([AM(ts[0], lambda _m: _m.move_to(slot[0])), AM(ts[1], lambda _m: _m.move_to(slot[1]))], 1.0),
-                 ([FadeIn(wait), AM(ts[2][0], lambda _m: _m.set_stroke(CORAL, 4)), AM(ts[3][0], lambda _m: _m.set_stroke(CORAL, 4))], 0.9),
-                 ([AM(ts[0], lambda _m: _m.move_to(RIGHT * 4.0 + DOWN * 2.1)), FadeOut(wait)], 0.9),
-                 ([AM(ts[2], lambda _m: _m.move_to(slot[0]))], 0.9),
-                 ([AM(ts[3][0], lambda _m: _m.set_stroke(TH[3], 2))], 0.3),
+                 ([FadeIn(VGroup(*boxes)), FadeIn(VGroup(*titles))], 0.7),
+                 # mutex: one at a time
+                 ([FadeIn(door), *[FadeIn(d) for d in m_d]], 0.6),
+                 ([m_d[0].animate.move_to(door), wait_(m_d[1]), wait_(m_d[2])], 0.9),
+                 ([FadeOut(m_d[0]), m_d[1].animate.move_to(door).set_stroke(TH[1], 0)], 0.9),
+                 # barrier: wait for all
+                 ([Create(line), *[FadeIn(d) for d in b_d]], 0.6),
+                 ([b_d[0].animate.move_to(c1 + RIGHT * 0.45 + UP * 0.15)], 0.5),
+                 ([b_d[1].animate.move_to(c1 + RIGHT * 0.45 + DOWN * 0.25), wait_(b_d[0])], 0.5),
+                 ([b_d[2].animate.move_to(c1 + RIGHT * 0.45 + DOWN * 0.65)], 0.5),
+                 ([*[AM(d, (lambda _m, _i=i: _m.move_to(c1 + RIGHT * 2.3 + UP * (0.15 - 0.4 * _i)).set_stroke(WHITE, 0))) for i, d in enumerate(b_d)]], 0.8),
+                 # condition variable: wait for notification
+                 ([*[FadeIn(s) for s in slots], FadeIn(w_d), FadeIn(zz)], 0.6),
+                 ([FadeIn(item, scale=0.5), FadeIn(bell, scale=0.5)], 0.6),
+                 ([Indicate(bell, color=AMBER), FadeOut(zz), w_d.animate.move_to(c2 + RIGHT * 0.3 + DOWN * 0.2)], 0.9),
+                 ([FadeOut(item), FadeOut(bell)], 0.4),
+                 # semaphore k=2
+                 ([FadeIn(kk), *[FadeIn(s) for s in sl], *[FadeIn(d) for d in s_d]], 0.6),
+                 ([s_d[0].animate.move_to(sl[0]), s_d[1].animate.move_to(sl[1]), wait_(s_d[2]), wait_(s_d[3])], 1.0),
+                 ([FadeOut(s_d[0]), s_d[2].animate.move_to(sl[0]).set_stroke(TH[2], 0)], 0.9),
                  ([self.setcap("HPC: mutex và barrier dùng nhiều nhất", AMBER)], 0.8)]
         play_voiced(self, "02_24", steps)
 
@@ -840,20 +1252,31 @@ class Scene02SharedMem(Scene):
 
     # ------------------------------------------------------------ 02_28
     def seg_28(self):
-        hdr = make_header("Chọn C++ threads hay OpenMP", "quyết định", AMBER)
-        rows = [("Vòng lặp trên mảng", "OpenMP", ORANGE), ("Song song hóa dần mã cũ", "OpenMP", ORANGE),
-                ("Đệ quy, cây, không đều", "OpenMP task", ORANGE), ("Luồng sống lâu: máy chủ, I/O", "C++ threads", CYAN),
-                ("Hàng đợi, chờ điều kiện", "C++ threads", CYAN), ("Gắn luồng vào lõi", "Pthreads qua native_handle()", TEAL)]
-        gs = VGroup()
-        for i, (a, b, c) in enumerate(rows):
-            l = labeled(a, 5.2, 0.55, BORDER_DIM, 18).move_to(LEFT * 2.6 + UP * (2.0 - 0.72 * i))
-            r = labeled(b, 4.2, 0.55, c, 18, bold=True).move_to(RIGHT * 3.2 + UP * (2.0 - 0.72 * i))
-            gs.add(VGroup(l, r))
-        hl = rbox(11.6, 0.68, AMBER, fill=AMBER, op=0.12, sw=3).move_to(gs[0])
-        steps = [([FadeIn(hdr)], 0.4), ([FadeIn(gs, lag_ratio=0.2)], 2.0),
-                 ([FadeIn(hl)], 0.5), ([AM(hl, lambda _m: _m.move_to(gs[3]))], 1.0),
-                 ([AM(hl, lambda _m: _m.move_to(gs[5]))], 1.0),
-                 ([self.setcap("Có thể kết hợp: chương trình C++ threads chứa vùng OpenMP", AMBER)], 0.9)]
+        hdr = make_header("Chọn C++ threads hay OpenMP", "xếp thùng", AMBER)
+        cards = [("vòng lặp trên mảng", 0, ORANGE), ("song song hóa mã cũ", 0, ORANGE), ("đệ quy, cây, không đều", 0, ORANGE),
+                 ("máy chủ, I/O, luồng sống lâu", 1, CYAN), ("hàng đợi, chờ điều kiện", 1, CYAN), ("gắn luồng vào lõi", 2, TEAL)]
+        bx = [LEFT * 4.3, LEFT * 0.0, RIGHT * 4.3]
+        bn = [("OpenMP (+ task)", ORANGE), ("C++ threads", CYAN), ("Pthreads qua native_handle()", TEAL)]
+        bins = VGroup(); bl = VGroup()
+        for x, (n, c) in zip(bx, bn):
+            b = rbox(3.9, 2.35, c, sw=3).move_to(x + DOWN * 1.15)
+            bins.add(b)
+            bl.add(tx(n, 17, c, bold=True, maxw=3.6).move_to(b.get_top() + DOWN * 0.28))
+        chips = VGroup()
+        for i, (t, k, c) in enumerate(cards):
+            chips.add(labeled(t, 2.75, 0.5, c, 15, bold=True).move_to(LEFT * 3.1 + RIGHT * 3.1 * (i % 3) + UP * (2.15 - 0.62 * (i // 3))))
+        self.m = make_mascot("think", 0.5).move_to(RIGHT * 6.0 + UP * 1.3)
+        slot_n = [0, 0, 0]
+        dest = []
+        for t, k, c in cards:
+            dest.append(bx[k] + DOWN * (0.85 + 0.55 * slot_n[k]) + UP * 0.0)
+            slot_n[k] += 1
+        steps = [([FadeIn(hdr)], 0.4), ([FadeIn(bins), FadeIn(bl)], 0.6),
+                 ([FadeIn(chips, lag_ratio=0.15), FadeIn(self.m)], 1.4)]
+        for ch_, d_ in zip(chips, dest):
+            steps.append(([ch_.animate.move_to(d_)], 0.8))
+        steps += [([self.mood("cheer", 0.5), self.setcap("Có thể kết hợp: chương trình C++ threads chứa vùng OpenMP", AMBER)], 0.9),
+                  ([self.m.animate.shift(UP * 0.25)], 0.25), ([self.m.animate.shift(DOWN * 0.25)], 0.25)]
         play_voiced(self, "02_28", steps)
 
     # ------------------------------------------------------------ 02_29
