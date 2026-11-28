@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheatsheet – Tính toán song song</title>
+<style>
+:root{--m1:#1a6fb0;--m2:#d97706;--m3:#7c3aed;--m4:#15803d;--ink:#1f2328;--bg:#fff;--soft:#f3f5f7}
+@media (prefers-color-scheme:dark){:root{--ink:#e6e8eb;--bg:#15181c;--soft:#22272d}}
+*{box-sizing:border-box}
+body{margin:0;padding:14px;font:12.5px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+h1{font-size:19px;margin:0 0 2px}
+.sub{color:#788;margin:0 0 10px;font-size:11.5px}
+.cols{column-width:330px;column-gap:14px}
+section{break-inside:avoid-column;border:1.5px solid var(--c);border-radius:7px;margin:0 0 10px;overflow:hidden}
+section h2{margin:0;padding:3px 8px;font-size:13px;color:#fff;background:var(--c)}
+section .b{padding:5px 8px 6px}
+.m1{--c:var(--m1)}.m2{--c:var(--m2)}.m3{--c:var(--m3)}.m4{--c:var(--m4)}.mx{--c:#b4232a}
+h3{font-size:12px;margin:6px 0 2px;color:var(--c)}
+ul{margin:2px 0;padding-left:16px}li{margin:1px 0}
+table{border-collapse:collapse;width:100%;margin:3px 0;font-size:11.5px}
+th,td{border:1px solid #9aa4;padding:1.5px 4px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+code,pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+code{background:var(--soft);padding:0 2px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--soft);padding:4px 6px;border-radius:4px;margin:3px 0;white-space:pre-wrap}
+.k{font-weight:700}
+.g{break-inside:avoid}
+.warn{color:#b4232a;font-weight:600}
+.f{background:var(--soft);padding:3px 6px;border-radius:4px;margin:3px 0;text-align:center}
+@media print{@page{size:A4;margin:8mm}
+body{padding:0;font-size:9.5px;line-height:1.3}
+.cols{column-count:1;column-width:auto}
+section{break-inside:auto;margin-bottom:7px}
+section h2{break-after:avoid;font-size:12px}
+section .b{column-count:3;column-gap:9px}
+.g{break-inside:avoid}
+h3{break-after:avoid;margin-top:4px}
+code,pre{font-size:8.5px}table{font-size:9px}h1{font-size:15px}p.sub{margin-bottom:6px}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<h1>Cheatsheet – Tính toán song song (cuối kỳ)</h1>
+<p class="sub">Phạm vi: slide Ch.1–2 + ghi chú chương 3 (C++ threads, OpenMP), chương 4 (MPI), chương 5 (CUDA). Bản PDF: <a href="cheatsheet_vi.pdf">cheatsheet_vi.pdf</a> (A4, 6 trang).</p>
+<div class="cols">
+
+<section class="m1"><h2>M1 · Ch.1 Kiến trúc song song</h2><div class="b"><div class="g"><h3>Vì sao song song?</h3>
+<ul><li>Mục đích: tiết kiệm <b>thời gian (wall-clock)</b>, giải bài toán <b>lớn hơn</b>, tính <b>đồng thời</b>; thêm: dùng tài nguyên từ xa, giảm chi phí, vượt giới hạn bộ nhớ.</li>
+<li>Giới hạn của tuần tự: <b>tốc độ truyền</b> (ánh sáng 30 cm/ns, dây đồng 9 cm/ns), <b>thu nhỏ</b> linh kiện, <b>kinh tế</b>.</li>
+<li>Bài toán phù hợp: chia được thành phần độc lập, nhiều lệnh cùng lúc, nhanh hơn khi thêm tài nguyên.</li></ul>
+</div><div class="g"><h3>Von Neumann</h3>
+<p>Chương trình lưu trong bộ nhớ (lệnh + dữ liệu cùng bộ nhớ); CPU lấy lệnh → giải mã → thực hiện <b>tuần tự</b>.</p>
+</div><div class="g"><h3>Phân loại Flynn (Instruction × Data)</h3>
+<table><tr><th></th><th>Single Data</th><th>Multiple Data</th></tr>
+<tr><th>Single Instr.</th><td><b>SISD</b>: máy tuần tự (PC thường)</td><td><b>SIMD</b>: cùng lệnh, lockstep, đồng bộ; hợp bài toán đều (ảnh). Processor array, vector pipeline</td></tr>
+<tr><th>Multiple Instr.</th><td><b>MISD</b>: hầu như không có (nhiều bộ lọc/ thuật toán mã hóa trên 1 luồng)</td><td><b>MIMD</b>: phổ biến nhất (siêu máy tính, SMP, grid); đồng bộ hoặc bất đồng bộ</td></tr></table>
+</div><div class="g"><h3>Thuật ngữ</h3>
+<ul><li><b>Granularity</b> (độ hạt) = tính toán / truyền thông. <b>Coarse</b>: nhiều tính toán giữa hai lần truyền thông; <b>Fine</b>: ít.</li>
+<li><b>Observed speedup</b> = T<sub>tuần tự</sub> / T<sub>song song</sub>.</li>
+<li><b>Parallel overhead</b>: khởi tạo task, đồng bộ, truyền dữ liệu, overhead thư viện/HĐH, kết thúc task.</li>
+<li><b>Synchronization</b>: điểm đồng bộ, ít nhất 1 task phải chờ → tăng wall-clock.</li>
+<li><b>Scalability</b>: tăng tốc tỉ lệ khi thêm bộ xử lý. Phụ thuộc: băng thông CPU–bộ nhớ/mạng, thuật toán, overhead.</li>
+<li><b>Massively parallel</b>: phần cứng có rất nhiều bộ xử lý (cỡ 6 chữ số).</li></ul>
+</div><div class="g"><h3>Định luật Amdahl</h3>
+<div class="f">speedup = 1 / (1 − P) &nbsp; (N → ∞) &nbsp;|&nbsp; speedup = 1 / (P/N + S), S = 1 − P</div>
+<table><tr><th>N</th><th>P=0,50</th><th>P=0,90</th><th>P=0,99</th></tr>
+<tr><td>10</td><td>1,82</td><td>5,26</td><td>9,17</td></tr><tr><td>100</td><td>1,98</td><td>9,17</td><td>50,25</td></tr>
+<tr><td>1000</td><td>1,99</td><td>9,91</td><td>90,99</td></tr><tr><td>10000</td><td>1,99</td><td>9,91</td><td>99,02</td></tr></table>
+<p>P=0 → speedup 1; P=1 → vô hạn (lý thuyết); P=50% → tối đa 2×.</p>
+</div><div class="g"><h3>Kiến trúc bộ nhớ</h3>
+<table><tr><th></th><th>Shared</th><th>Distributed</th></tr>
+<tr><th>Không gian địa chỉ</th><td>Toàn cục, chung</td><td>Mỗi CPU có bộ nhớ riêng, <b>không</b> có global address space</td></tr>
+<tr><th>Cache coherency</th><td>Có (phần cứng, CC-)</td><td>Không áp dụng</td></tr>
+<tr><th>Ưu</th><td>Dễ lập trình, chia sẻ nhanh</td><td>Bộ nhớ mở rộng theo số CPU, truy cập cục bộ nhanh, rẻ (hàng thương mại)</td></tr>
+<tr><th>Nhược</th><td>Kém mở rộng (băng thông CPU–RAM, traffic coherency), lập trình viên phải đồng bộ, đắt</td><td>Lập trình viên lo truyền thông + đồng bộ; khó chuyển cấu trúc dữ liệu từ bộ nhớ toàn cục</td></tr>
+<tr><th>Ví dụ / API</th><td>SMP; Threads, OpenMP</td><td>Cluster; MPI</td></tr></table>
+<ul><li><b>UMA</b> (SMP, CC-UMA): CPU giống nhau, thời gian truy cập bằng nhau. <b>NUMA</b>: nối vài SMP, truy cập qua liên kết chậm hơn (CC-NUMA nếu có coherency).</li>
+<li><b>Hybrid</b>: nhiều SMP nối mạng (máy mạnh nhất hiện nay): trong nút shared, giữa các nút distributed.</li>
+<li>Mở rộng: UMA ~ chục CPU; CC-NUMA ~ trăm; distributed ~ nghìn.</li>
+<li>Loại máy: <b>multi-core</b> (đa luồng), <b>SMP</b> (CPU giống nhau, bộ nhớ chung, cần bus nhanh), <b>distributed</b> (cluster, MPP, grid).</li></ul>
+</div></div></section>
+
+<section class="m1"><h2>M1 · Ch.2 Mô hình & thiết kế thuật toán</h2><div class="b"><div class="g"><h3>Mô hình lập trình song song (trừu tượng trên phần cứng)</h3>
+<table><tr><th>Mô hình</th><th>Ý chính</th></tr>
+<tr><td><b>Shared memory</b></td><td>Các task chung không gian địa chỉ, đọc/ghi bất đồng bộ; dùng lock/semaphore. Không có "quyền sở hữu" dữ liệu → khỏi chỉ định truyền thông; khó quản lý <i>data locality</i>.</td></tr>
+<tr><td><b>Threads</b></td><td>1 process, nhiều luồng thực thi song song; luồng có dữ liệu cục bộ + chia sẻ tài nguyên process; giao tiếp qua bộ nhớ toàn cục → cần đồng bộ. Cài đặt: <b>POSIX Threads</b> (thư viện) và <b>OpenMP</b> (chỉ thị biên dịch, "incremental parallelism").</td></tr>
+<tr><td><b>Message passing</b></td><td>Task dùng bộ nhớ cục bộ, trao đổi bằng <b>send/receive</b> (cần cặp khớp). Chuẩn: <b>MPI</b> (MPI-1 1994, MPI-2 1996).</td></tr>
+<tr><td><b>Data parallel</b></td><td>Cùng thao tác trên các phần khác nhau của cùng cấu trúc dữ liệu (vd "cộng 4 vào mọi phần tử").</td></tr>
+<tr><td><b>SPMD</b></td><td>1 chương trình, mọi task chạy; rẽ nhánh theo id; dữ liệu khác nhau.</td></tr>
+<tr><td><b>MPMD</b></td><td>Nhiều chương trình (file thực thi) khác nhau.</td></tr>
+<tr><td><b>Hybrid</b></td><td>Kết hợp ≥ 2 mô hình, vd MPI + OpenMP/Pthreads.</td></tr></table>
+<p>Không có mô hình "tốt nhất"; mô hình độc lập với phần cứng (về lý thuyết cài đặt được trên bất kỳ phần cứng nào).</p>
+</div><div class="g"><h3>PRAM</h3>
+<ul><li>Tổng quát hóa RAM: <b>p</b> bộ xử lý giống nhau, <b>bộ nhớ chung</b> vô hạn, truy cập 1 đơn vị thời gian, không giới hạn số CPU, đồng bộ từng bước; mỗi CPU có <b>pid</b>; không giao tiếp trực tiếp, chỉ qua bộ nhớ.</li>
+<li>Mỗi bước: <b>READ → COMPUTE → WRITE</b>. Một số CPU có thể nghỉ.</li>
+<li>Thuật toán PRAM cài được trên máy thật nhưng phát sinh chi phí truyền thông; dùng để suy <b>chặn dưới</b> thời gian.</li></ul>
+<table><tr><th>Loại</th><th>Đọc</th><th>Ghi</th></tr>
+<tr><td>EREW</td><td>Exclusive</td><td>Exclusive (1 CPU/ô/bước)</td></tr>
+<tr><td>CREW</td><td>Concurrent</td><td>Exclusive</td></tr>
+<tr><td>ERCW</td><td>Exclusive</td><td>Concurrent</td></tr>
+<tr><td>CRCW</td><td>Concurrent</td><td>Concurrent</td></tr></table>
+<p>Thuật toán đúng trên <b>EREW ⇒ đúng trên CREW, CRCW</b>, ngược lại không.</p>
+</div><div class="g"><h3>Giải quyết ghi đồng thời (CW)</h3>
+<ul><li><b>PCR</b> (Priority): CPU ưu tiên cao nhất ghi.</li><li><b>ECR</b> (Equality): chỉ ghi nếu các giá trị bằng nhau.</li><li><b>ACR</b> (Arbitrary): chọn một giá trị bất kỳ.</li>
+<li>Khác: Fail / Collision / Fail-safe common; Random; <b>Combining</b> (ghi tổng/TB/max/min).</li></ul>
+</div><div class="g"><h3>Độ phức tạp thuật toán song song</h3>
+<ul><li>Hiệu quả phụ thuộc: <b>thời gian chạy</b>, <b>số bộ xử lý</b>, <b>kiến trúc máy</b>. Thời gian = số phép toán từ lúc CPU đầu bắt đầu đến khi tất cả xong.</li>
+<li>O (chặn trên), Ω (chặn dưới), Θ (chặt: c₁f ≤ T ≤ c₂f); thường quan tâm O.</li></ul>
+</div><div class="g"><h3>Pseudo code</h3>
+<pre>FOR i = 1 TO n DO IN PARALLEL ... END PARALLEL   // CPU i chạy với chỉ số i</pre>
+</div><div class="g"><h3>Các thuật toán cơ bản</h3>
+<table><tr><th>Bài toán</th><th>Kỹ thuật</th><th>Thời gian / CPU / máy</th></tr>
+<tr><td>C = A + B (vector)</td><td>mỗi CPU 1 phần tử</td><td>O(1), n CPU, EREW</td></tr>
+<tr><td>Tổng n số (n=2<sup>k</sup>)</td><td><b>Binary tree</b>: A[i]=A[2i−1]+A[2i], p=p/2</td><td>O(log n), O(n) CPU (n/2 ở bước 1), EREW</td></tr>
+<tr><td>Tích vô hướng</td><td>nhân song song + cây nhị phân</td><td>O(log n), n CPU, EREW</td></tr>
+<tr><td>Boolean-AND</td><td>CRCW: mọi CPU thấy FALSE ghi FALSE (ECR/ACR/PCR)</td><td>O(1) ERCW/CRCW; O(log n) EREW; tuần tự O(n)</td></tr>
+<tr><td>Broadcast x</td><td><b>Growing by doubling</b>: số CPU tham gia nhân đôi mỗi bước</td><td>O(log n), O(n) CPU, EREW (đơn giản: O(n))</td></tr>
+<tr><td>List ranking</td><td><b>Pointer jumping</b>: RANK[i]+=RANK[NEXT[i]]; NEXT[i]=NEXT[NEXT[i]]; khởi tạo RANK=1</td><td>O(log n), O(n) CPU, EREW</td></tr>
+<tr><td>Trộn 2 mảng đã sắp</td><td><b>Partitioning</b>: chia A thành r=n/log n nhóm k=log n phần tử; binary search tìm j[i] trong B; trộn tuần tự từng cặp</td><td>O(log n); tuần tự O(n)</td></tr></table>
+<ul><li><b>Binary tree</b>: số CPU <u>giảm</u> nửa mỗi bước. <b>Doubling</b>: số CPU <u>tăng</u> gấp đôi. Cả hai: log n bước.</li>
+<li><b>Pointer jumping</b>: khoảng nhảy gấp đôi mỗi bước, dừng khi mọi NEXT[i]=0; rank = khoảng cách đến cuối danh sách (tuần tự O(n)).</li>
+<li>Lệnh <code>RANK[i]=RANK[i]+RANK[NEXT[i]]</code> tách 3 bước (X=RANK[i]; Y=RANK[NEXT[i]]; ghi X+Y) → không đụng độ → EREW.</li></ul>
+</div></div></section>
+
+<section class="m2"><h2>M2 · Ch.3 C++ threads & OpenMP</h2><div class="b"><div class="g"><h3>Tiến trình vs luồng</h3>
+<ul><li>Luồng <b>dùng chung</b>: mã, biến toàn cục, heap, file mở. <b>Riêng</b>: stack (biến cục bộ), thanh ghi, con trỏ lệnh. Tạo luồng rẻ hơn tiến trình; trao đổi qua biến chung (nhanh nhưng dễ ghi đè).</li>
+<li>Cùng chồng triển khai: C++ threads → Pthreads → nhân Linux; OpenMP <code>#pragma</code> → libgomp → <code>pthread_create</code> (4 luồng: gọi 3 lần, luồng chính = luồng 0).</li></ul>
+<table><tr><th></th><th>Pthreads</th><th>C++ threads</th><th>OpenMP</th></tr>
+<tr><td>Dạng</td><td>thư viện C (POSIX)</td><td>thư viện chuẩn C++11/20</td><td>chỉ thị + runtime + biến môi trường</td></tr>
+<tr><td>Cờ</td><td>-pthread</td><td>-std=c++20 -pthread</td><td>-fopenmp</td></tr>
+<tr><td>Chia việc</td><td>tự viết</td><td>tự viết</td><td>omp for, schedule, task</td></tr></table>
+</div><div class="g"><h3>C++ threads</h3>
+<ul><li><code>std::jthread</code> (C++20): <b>tự join</b> khi hủy, có <code>stop_token</code>/<code>request_stop()</code>. <code>std::thread</code> (C++11): hủy khi còn joinable ⇒ <span class="warn">std::terminate</span>; có <code>detach()</code>.</li>
+<li>Lambda: <code>[&amp;, k]</code> = tham chiếu chung, <code>k</code> theo giá trị.</li>
+<li>Cách chia mảng: luồng k xử lý <code>[n*k/nt, n*(k+1)/nt)</code>, ghi tổng riêng <code>part[k]</code>, luồng chính gộp.</li>
+<li>Tổng mảng là <b>memory-bound</b>: tăng tốc ~3× dừng ở 4 luồng (băng thông RAM bão hòa).</li></ul>
+</div><div class="g"><h3>Race condition</h3>
+<ul><li>Kết quả phụ thuộc thứ tự chạy; <b>data race</b> = truy cập xung đột cùng ô nhớ, có ghi không nguyên tử, không đồng bộ ⇒ hành vi không xác định. <code>counter++</code> = đọc–cộng–ghi ⇒ mất cập nhật.</li>
+<li><code>volatile</code> chỉ chống tối ưu hóa gộp vòng lặp, <b>không</b> phải đồng bộ. 1 luồng luôn đúng.</li></ul>
+</div><div class="g"><h3>3 cách sửa (đều đúng, khác số lần đồng bộ)</h3>
+<table><tr><th>Cách</th><th>Thời gian (4 luồng × 10⁷)</th></tr>
+<tr><td>mutex mỗi lần lặp</td><td>1,399 s (~700× chậm hơn)</td></tr>
+<tr><td>atomic mỗi lần lặp</td><td>0,210 s (nhanh mutex 7×)</td></tr>
+<tr><td><b>cục bộ rồi gộp</b> (khóa 1 lần/luồng)</td><td>0,002 s ← tốt nhất</td></tr></table>
+<ul><li><b>atomic</b>: 1 biến, 1 thao tác. <b>mutex</b>: đoạn găng nhiều lệnh/nhiều biến (giữ bất biến <code>tong==2*dem</code>; 2 atomic riêng lẻ có thể vỡ bất biến).</li>
+<li>Nguyên tắc: <b>giảm dữ liệu dùng chung trước</b>, rồi mới tới khóa/atomic; đoạn găng càng ngắn càng tốt.</li>
+<li><code>std::scoped_lock</code> (RAII, tự mở khóa), <code>std::barrier</code> (C++20, chờ đủ N luồng; có hàm hoàn tất chạy 1 lần mỗi pha), <code>condition_variable</code> (chờ điều kiện dưới khóa, vd producer–consumer), <code>counting_semaphore</code> (tối đa k luồng).</li></ul>
+</div><div class="g"><h3>Ánh xạ OpenMP ↔ C++</h3>
+<table><tr><th>OpenMP</th><th>C++ threads</th></tr>
+<tr><td><code>parallel</code> (fork + join cuối vùng)</td><td>tạo jthread + join</td></tr>
+<tr><td><code>critical</code> (có thể đặt tên)</td><td>mutex + scoped_lock</td></tr>
+<tr><td><code>atomic</code> (1 lệnh cập nhật đơn giản)</td><td>std::atomic</td></tr>
+<tr><td><code>barrier</code> (ngầm cuối parallel/for/single)</td><td>std::barrier</td></tr>
+<tr><td><code>single</code> (1 luồng bất kỳ, <b>có</b> rào chắn cuối)</td><td>1 luồng làm + barrier</td></tr>
+<tr><td><code>masked</code> (chỉ luồng 0, <b>không</b> rào chắn; <code>master</code> lỗi thời từ 5.1)</td><td>if (id==0)</td></tr>
+<tr><td><code>ordered</code>; <code>omp_set_lock</code></td><td>condition_variable/đếm lượt; mutex</td></tr></table>
+</div><div class="g"><h3>OpenMP</h3>
+<ul><li>3 thành phần: <b>chỉ thị</b> (<code>#pragma omp</code>), <b>thư viện</b> (<code>omp_get_thread_num()</code>, <code>omp_get_wtime()</code>), <b>biến môi trường</b> (<code>OMP_NUM_THREADS</code>, <code>OMP_SCHEDULE</code>). Bỏ <code>-fopenmp</code> → chỉ thị bị bỏ qua.</li>
+<li>Biến ngoài vùng song song: <b>shared</b> mặc định; trong vùng: <b>private</b>. Dùng <code>default(none)</code> để khai báo tường minh. shared ≈ <code>[&amp;]</code>, firstprivate ≈ <code>[=]</code>.</li></ul>
+<table><tr><th>Mệnh đề</th><th>Giá trị đầu (bản riêng)</th><th>Biến gốc sau vùng</th></tr>
+<tr><td>private</td><td>chưa xác định</td><td>không đổi</td></tr>
+<tr><td>firstprivate</td><td>giá trị biến gốc</td><td>không đổi</td></tr>
+<tr><td>lastprivate</td><td>chưa xác định</td><td>giá trị ở lần lặp cuối (thứ tự tuần tự)</td></tr>
+<tr><td>reduction(+:s)</td><td>0 (phần tử trung hòa)</td><td>gốc + tổng các bản riêng</td></tr></table>
+<ul><li><code>omp for</code>: tự chia lần lặp; <b>rào chắn ngầm cuối</b>, bỏ bằng <code>nowait</code>. <code>collapse(2)</code> gộp 2 vòng lồng.</li>
+<li>Bài π (đo n=10⁷, 8 luồng): <code>sum</code> shared không bảo vệ → RACE (π≈0,38). critical 1,230 s (176×) &gt; atomic 0,307 s (44×) &gt; <b>reduction 0,001 s</b>; serial 0,007 s. n=10⁸: 0,071 → 0,009 s (7,9×).</li></ul>
+</div><div class="g"><h3>Lập lịch vòng lặp (schedule)</h3>
+<table><tr><th>Kiểu</th><th>Cách chia</th><th>Chi phí</th><th>Hợp với</th></tr>
+<tr><td>static</td><td>mỗi luồng 1 khối liên tiếp ≈ n/p</td><td>thấp nhất</td><td>tải đều</td></tr>
+<tr><td>static,k</td><td>khúc k chia vòng tròn</td><td>thấp</td><td>tải đổi đều theo i (tam giác)</td></tr>
+<tr><td>dynamic,k</td><td>luồng rảnh lấy khúc k tiếp (mặc định k=1)</td><td>mỗi lần lấy việc</td><td>tải bất thường</td></tr>
+<tr><td>guided,k</td><td>khúc ≈ còn lại/p, nhỏ dần, ≥k</td><td>ít hơn dynamic</td><td>tải giảm dần</td></tr>
+<tr><td>runtime / auto</td><td>đọc OMP_SCHEDULE / để runtime chọn</td><td>–</td><td>thử nghiệm</td></tr></table>
+<ul><li>Đếm nguyên tố (tải không đều, 8 luồng): static 1,015 s (5,8×), static,1 1,473 s (4,0×, chậm nhất), dynamic,64 0,744 s, guided 0,742 s (7,9×). Mandelbrot: static 0,420 → dynamic,1 0,159 s.</li>
+<li>Quy tắc: bắt đầu <b>static</b>; lệch tải (user/real thấp hơn số luồng) → <b>dynamic,k</b> với k để mỗi luồng nhận ~10–100 khúc (k nhỏ: tốn lấy việc; k lớn: lệch tải); tải đều thì lịch đơn giản nhất tốt nhất (dynamic,1 trên tải đều chậm ~100×).</li></ul>
+</div><div class="g"><h3>Task (đệ quy/cây/danh sách)</h3>
+<pre>#pragma omp parallel
+#pragma omp single        // 1 luồng mở đầu
+s = sum(a,0,n);
+// trong sum: if (hi-lo &lt;= cutoff) tuần tự;
+#pragma omp task shared(left)  left = sum(a,lo,mid);
+right = sum(a,mid,hi);
+#pragma omp taskwait</pre>
+<ul><li><b>cutoff</b> = độ hạt: quá nhỏ (10³ → ~1,3·10⁵ task) chi phí vượt lợi ích, chậm hơn tuần tự; 10⁵–10⁶ (~1000–130 task) tốt nhất 0,012 s; 10⁸ = 1 task = tuần tự. Bỏ <code>shared(left)</code> → kết quả sai.</li>
+<li>C++20 chưa có thread pool chuẩn; <code>std::async</code> không đảm bảo dùng nhóm luồng.</li></ul>
+</div><div class="g"><h3>False sharing</h3>
+<ul><li>Các luồng ghi biến <b>khác nhau</b> nhưng chung <b>dòng cache 64 B</b> → phần cứng liên tục vô hiệu hóa → không có data race vẫn chậm: 8 luồng chung dòng 0,719 s vs 1 luồng 0,036 s (19–20× chậm).</li>
+<li>Sửa: tích lũy vào <b>biến cục bộ</b>, ghi 1 lần cuối; hoặc <code>alignas(64)</code> (padded 0,037 s; alignas(32) 0,167 s).</li></ul>
+</div><div class="g"><h3>Gắn luồng, công cụ</h3>
+<ul><li><code>OMP_PLACES=cores</code>, <code>OMP_PROC_BIND=close</code> (dồn gần, tận dụng cache chung) / <code>spread</code> (rải, tăng băng thông bộ nhớ). C++: <code>pthread_setaffinity_np(t.native_handle(),…)</code>. NUMA <b>first touch</b>: trang nhớ cấp ở nút của luồng chạm đầu tiên → khởi tạo song song.</li>
+<li><b>ThreadSanitizer</b>: <code>-fsanitize=thread</code>, chỉ ra biến + dòng + 2 luồng; chậm 5–15×; chỉ bắt race trên đường thực thi đã chạy.</li>
+<li><code>time</code>: real = thời gian thực, user = tổng CPU mọi luồng; <b>user/real ≈ số lõi bận</b>; sys lớn → tranh chấp khóa/nhân. <code>perf stat/record/report</code> cho biết thời gian đi đâu. Đo thời gian: <code>omp_get_wtime()</code>/<code>steady_clock</code>, <b>không</b> dùng <code>clock()</code> (cộng CPU mọi luồng).</li></ul>
+</div><div class="g"><h3>Chọn công cụ</h3>
+<ul><li>Vòng lặp mảng / song song hóa dần → <b>OpenMP</b>; đệ quy/cây → <b>OpenMP task</b>; luồng khác việc, sống lâu, hàng đợi, condition_variable → <b>C++ threads</b>; affinity/thuộc tính HĐH → Pthreads qua native_handle().</li></ul>
+</div><div class="g"><h3>Lỗi hay gặp</h3>
+<ul><li><b>Sai</b>: biến tạm ngoài vòng lặp quên private; cộng vào biến chung không reduction; std::thread quên join; lambda <code>[&amp;]</code> bắt nhầm; <code>#pragma</code> thiếu chữ <code>omp</code> (bị bỏ qua); tin "chạy thử thấy đúng".</li>
+<li><b>Chậm</b>: critical/mutex/atomic trong vòng lặp; mảng tổng riêng gây false sharing; static cho tải không đều; task quá nhỏ.</li>
+<li>Quy trình: tuần tự → song song với <code>default(none)</code> → so với tuần tự → TSan → đo.</li></ul>
+</div></div></section>
+
+<section class="m3"><h2>M3 · Ch.4 MPI</h2><div class="b"><div class="g"><h3>Mô hình</h3>
+<ul><li>Bộ nhớ <b>phân tán</b>, đơn vị = <b>tiến trình</b>, trao đổi bằng <b>thông điệp</b> tường minh. Lỗi điển hình: <b>bế tắc</b>, thông điệp không khớp (so với race ở luồng). Có thể chạy nhiều nút.</li>
+<li>MPI là <b>chuẩn</b> (MPI-1 1994, 2: 1997, 3: 2012, 4.1: 2023), giao diện thư viện C/Fortran, không phải ngôn ngữ; cài đặt: OpenMPI, MPICH, Intel MPI.</li>
+<li><b>SPMD</b>: 1 file thực thi chạy p bản; mỗi tiến trình có <b>rank</b> 0..p−1 trong <b>communicator</b> (nhóm + ngữ cảnh; tin trong communicator này không khớp với communicator khác). <code>MPI_COMM_WORLD</code> = mọi tiến trình.</li></ul>
+<pre>mpicxx -std=c++20 -O2 prog.cpp -o prog     // bọc g++ (mpicxx --showme)
+mpirun -np 4 ./prog     // mặc định ≤ 1 tiến trình/lõi; vượt: --oversubscribe
+mpirun -np 64 --hostfile hosts.txt ./prog   // hosts: "node1 slots=12"
+// khung: MPI_Init → Comm_rank/size → tính → MPI_Finalize</pre>
+<table><tr><th>Hàm</th><th>Vai trò</th></tr>
+<tr><td>MPI_Init(&amp;argc,&amp;argv)</td><td>lời gọi MPI đầu tiên</td></tr>
+<tr><td>MPI_Finalize()</td><td>lời gọi MPI cuối cùng</td></tr>
+<tr><td>MPI_Comm_size / _rank(comm,&amp;x)</td><td>số tiến trình / số hiệu</td></tr>
+<tr><td>MPI_Send(buf,count,type,dest,tag,comm)</td><td>gửi</td></tr>
+<tr><td>MPI_Recv(buf,count,type,src,tag,comm,&amp;status)</td><td>nhận</td></tr></table>
+</div><div class="g"><h3>Điểm–điểm</h3>
+<ul><li>Dữ liệu = (buf, count, type); phong bì = (nguồn, dest, tag, comm). <b>count = số phần tử</b> (không phải byte). Vùng nhận có thể lớn hơn, không được nhỏ hơn.</li>
+<li>Wildcard: <code>MPI_ANY_SOURCE</code>, <code>MPI_ANY_TAG</code>; <code>status</code> (MPI_SOURCE, MPI_TAG) + <code>MPI_Get_count</code>.</li>
+<li>Cùng cặp tiến trình + communicator: thông điệp <b>không vượt nhau</b> (nhận đúng thứ tự gửi).</li>
+<li>Chi phí: <div class="f">t(n) = α + n/β &nbsp; (α: độ trễ, β: băng thông)</div> Thông điệp nhỏ chịu α, lớn chịu β → <b>gom thành ít thông điệp lớn</b>. (Đo cùng chiplet: α≈0,1 µs; TCP loopback α≈2,6 µs.)</li></ul>
+</div><div class="g"><h3>Bế tắc</h3>
+<ul><li>Cả hai cùng <code>MPI_Send</code> trước rồi Recv: thông điệp nhỏ (<b>eager</b>, sao vào bộ đệm bên nhận, Send trả về ngay) chạy được; lớn (<b>rendezvous</b>, Send chờ Recv tương ứng) → <span class="warn">bế tắc</span>. Ngưỡng phụ thuộc thư viện (OpenMPI shared mem: 4096 B). Chương trình chỉ chạy nhờ bộ đệm = <b>không an toàn</b>.</li>
+<li><b>3 cách an toàn</b>: (1) sắp thứ tự lời gọi (rank 0 Send→Recv, rank kia Recv→Send); (2) <code>MPI_Sendrecv</code>; (3) không chặn <code>MPI_Isend/Irecv</code> + <code>MPI_Wait/Waitall</code>.</li>
+<li>Không chặn: trả về ngay <code>MPI_Request</code>; <b>không sửa vùng gửi / không đọc vùng nhận</b> cho tới khi Wait xong (<code>MPI_Test</code> chỉ kiểm tra). Cho phép chồng lấp tính toán và truyền thông.</li></ul>
+</div><div class="g"><h3>Tập thể (mọi tiến trình trong communicator phải gọi, cùng thứ tự)</h3>
+<table><tr><th>Hàm</th><th>Tác dụng</th></tr>
+<tr><td>Bcast</td><td>gốc → mọi tiến trình (cùng dữ liệu)</td></tr>
+<tr><td>Scatter / Gather</td><td>chia mảng từ gốc cho từng rank / gom về gốc</td></tr>
+<tr><td>Allgather</td><td>gom, mọi tiến trình đều có kết quả đủ</td></tr>
+<tr><td>Reduce(op, root)</td><td>kết hợp (SUM, MAX…) về <b>một</b> rank; Allreduce: <b>mọi</b> rank nhận</td></tr>
+<tr><td>Scan</td><td>tổng tiền tố: rank i nhận v₀+…+vᵢ (4 rank v=1..4 → 1,3,6,10)</td></tr>
+<tr><td>Alltoall</td><td>phần tử j của rank i → rank j (chuyển vị)</td></tr></table>
+<ul><li>Một lời gọi thay vòng Send/Recv; thuật toán cây: log p bước. Reduce 12 tiến trình m=10⁶: tự viết 6,1 ms; Reduce 8,6 ms; Allreduce 14,4 ms (vẫn ưu tiên tập thể vì mã gọn; đo để kiểm chứng).</li>
+<li><b>π với MPI</b>: <code>Bcast(n)</code> → mỗi rank cộng <code>i = rank; i &lt; n; i += size</code> → <code>Reduce(MPI_SUM)</code> ≈ OpenMP reduction. n=10⁹: 0,719 s (1) → 0,065 s (12) = 11,1×.</li>
+<li><b>Mat–vec chia hàng</b>: mỗi rank n/p hàng A + n/p phần tử x; <code>Allgather</code> x; tính cục bộ. Chỉ ~3,8× (12 tiến trình): memory-bound.</li></ul>
+</div><div class="g"><h3>Đo thời gian</h3>
+<pre>MPI_Barrier(c); t0 = MPI_Wtime(); work(); t = MPI_Wtime()-t0;
+MPI_Reduce(&amp;t,&amp;tmax,1,MPI_DOUBLE,MPI_MAX,0,c);</pre>
+<p>Barrier trước để cùng xuất phát; báo <b>max</b> (tiến trình chậm nhất quyết định); chênh lệch tính toán = mất cân bằng tải.</p>
+</div><div class="g"><h3>Cân bằng tải (đếm nguyên tố &lt; 2·10⁷, 12 tiến trình)</h3>
+<table><tr><th>Cách</th><th>Thời gian</th><th>Ghi chú</th></tr>
+<tr><td>block (khối liên tiếp)</td><td>0,721 s</td><td>lệch: bận 0,187–0,721</td></tr>
+<tr><td>cyclic (r, r+p, …)</td><td>1,539 s (chậm nhất)</td><td>p chia hết cho 2,3 → vài rank nhận toàn số "nặng" (rank 1,5,7,11)</td></tr>
+<tr><td><b>manager–worker</b></td><td>0,554 s</td><td>cân bằng <b>động</b>: worker xin việc → manager gửi khối kế (ANY_SOURCE) → STOP</td></tr></table>
+</div><div class="g"><h3>Phân rã miền (heat 2D/Jacobi)</h3>
+<ul><li>Chia lưới thành dải hàng; mỗi rank thêm <b>hàng ma (ghost row)</b> để lưu hàng biên của hàng xóm; mỗi bước: trao đổi biên → cập nhật.</li>
+<li>Tính toán ∝ <b>diện tích</b>, truyền thông ∝ <b>chu vi</b> → khối lớn thì tỉ lệ truyền thông nhỏ.</li>
+<li><code>MPI_Sendrecv</code> không bế tắc; <code>MPI_PROC_NULL</code> cho rank đầu/cuối (gửi/nhận với nó = không làm gì). Bản không chặn: cập nhật hàng trong trong lúc chờ.</li>
+<li>Giới hạn mở rộng (1 nút, 12 tiến trình): π 11,1× (tính toán thuần); Jacobi 1000² 9,1× (vừa cache); mat–vec 6000² 3,8× và Jacobi 4000² 2,4× (băng thông RAM).</li></ul>
+</div><div class="g"><h3>Nhiều máy</h3>
+<ul><li>Yêu cầu: cùng bản MPI, chương trình cùng đường dẫn (NFS/scp), <b>SSH không mật khẩu</b>, tên máy phân giải được (/etc/hosts), mạng cho mở cổng.</li>
+<li><code>--map-by slot</code> (mặc định, lấp đầy nút 1 trước) vs <code>--map-by node</code> (rải vòng tròn); <code>--display map</code>. Rank lân cận nên cùng nút.</li>
+<li>Chọn mạng: <code>--mca btl tcp,self,sm</code>, <code>btl_tcp_if_include</code>; sai card mạng → treo.</li>
+<li>Lỗi: <i>Host key verification failed</i> → ssh 1 lần; <i>Permission denied (publickey)</i> → ssh-copy-id; <i>prted: command not found</i> → PATH đầu .bashrc hoặc --prefix; <i>not enough slots</i> → sửa slots/giảm -np; treo ở MPI_Init → tường lửa/card mạng/khác phiên bản.</li>
+<li>Gỡ lỗi: ssh node2 hostname → ssh node2 which mpirun → mpirun hostname → hello → chương trình.</li>
+<li><b>Slurm</b>: <code>#SBATCH --nodes --ntasks-per-node</code>; <code>sbatch job.sh</code>, <code>squeue -u $USER</code>, <code>srun ./prog</code>.</li></ul>
+</div><div class="g"><h3>MPI vs OpenMP vs lai</h3>
+<table><tr><th></th><th>OpenMP/luồng</th><th>MPI</th></tr>
+<tr><td>Bộ nhớ</td><td>dùng chung</td><td>riêng từng tiến trình</td></tr>
+<tr><td>Quy mô</td><td>1 nút (vài chục lõi)</td><td>1 nút → hàng nghìn nút</td></tr>
+<tr><td>Trao đổi</td><td>ngầm, biến chung</td><td>thông điệp tường minh</td></tr>
+<tr><td>Lỗi điển hình</td><td>race condition</td><td>bế tắc, không khớp</td></tr>
+<tr><td>Song song hóa</td><td>dần từng vòng lặp (dễ)</td><td>phải phân phối dữ liệu (khó)</td></tr></table>
+<p><b>Lai</b>: 1 tiến trình MPI mỗi nút/socket + luồng OpenMP bên trong; khởi động <code>MPI_Init_thread(…, MPI_THREAD_FUNNELED, …)</code>.</p>
+</div><div class="g"><h3>Lỗi hay gặp</h3>
+<ul><li><b>Sai/treo</b>: cùng Send trước; tập thể chỉ vài rank gọi; lệch count/kiểu/tag; dùng lại buffer trước Wait; quên Finalize/gọi MPI sau Finalize.</li>
+<li><b>Chậm</b>: nhiều thông điệp nhỏ; phân phối tĩnh cho tải lệch; rank 0 lo hết I/O; thêm tiến trình khi RAM bão hòa; đo chỉ ở rank 0 không barrier.</li></ul>
+</div></div></section>
+
+<section class="m4"><h2>M4 · Ch.5 GPU & CUDA</h2><div class="b"><div class="g"><h3>Kiến trúc: vì sao GPU?</h3>
+<ul><li>4 yếu tố hiệu năng: <b>song song</b>, <b>tần số</b>, <b>băng thông bộ nhớ</b>, <b>độ trễ bộ nhớ</b>.</li>
+<li><b>CPU</b>: ít lõi mạnh, cache lớn + out-of-order để che độ trễ, DDR băng thông thấp; tần số chạm trần do <b>công suất ∝ f·V²</b> (không giảm V thêm được).</li>
+<li><b>GPU</b>: hàng nghìn lõi đơn giản, tần số thấp hơn, bộ nhớ GDDR/HBM2 băng thông cao; che độ trễ bằng <b>đa luồng rất cao</b> (chạy warp khác khi 1 warp chờ). Máy thực hành: RAM 67 GB/s vs GPU 438 GB/s (~6,5×).</li>
+<li>GPU là <b>bộ tăng tốc</b>, không thay CPU; nối qua <b>PCIe</b> (NVLink từ Pascal P100), mỗi bên bộ nhớ riêng. PCIe 4.0 x16: 26,8 GB/s; khe x1: 0,8 GB/s.</li>
+<li><b>SM</b> (Streaming Multiprocessor): chip chia thành nhiều SM độc lập; mỗi SM nhiều lõi chạy <b>lock-step</b>. Fermi: 32 lõi/SM, 1536 luồng/SM, ≤16 SM → 24 576 luồng. RTX 4070: 46 SM × 128 lõi, 1536 luồng/SM, 70 656 luồng.</li>
+<li>CUDA: chỉ GPU <b>NVIDIA</b>; <b>OpenCL</b>: đa nền tảng (cả AMD).</li></ul>
+</div><div class="g"><h3>Mô hình CUDA</h3>
+<ul><li><b>host</b> = CPU (mã tuần tự), <b>device</b> = GPU (kernel, rất nhiều luồng). Biên dịch: <code>nvcc -O2 -arch=native saxpy.cu -o saxpy</code> (nvcc xử lý mã CUDA, phần còn lại do trình biên dịch C/C++).</li>
+<li><b>Quy trình chuẩn</b>: ① chép dữ liệu vào GPU → ② khởi chạy kernel → ③ GPU thực thi → ④ chép kết quả về.</li></ul>
+<table><tr><th>Từ khóa</th><th>Chạy ở</th><th>Gọi từ</th></tr>
+<tr><td><code>__global__</code></td><td>GPU</td><td>CPU; phải trả <b>void</b> (kernel)</td></tr>
+<tr><td><code>__device__</code></td><td>GPU</td><td>hàm GPU</td></tr>
+<tr><td><code>__host__</code></td><td>CPU</td><td>CPU (mặc định); kết hợp được với __device__</td></tr></table>
+<p>Kernel: chỉ truy cập bộ nhớ GPU, không số tham số thay đổi, không biến static.</p>
+</div><div class="g"><h3>Tổ chức luồng</h3>
+<ul><li><b>thread → block → grid</b>. 1 kernel = 1 grid các block. Số luồng yêu cầu có thể &gt; số luồng GPU chạy cùng lúc.</li>
+<li>Luồng chạy trên 1 streaming processor; <b>1 block chạy trên 1 SM</b> (không di chuyển SM; 1 SM có thể chạy nhiều block nếu đủ thanh ghi/bộ nhớ); <b>1 grid chạy trên cả device</b>.</li>
+<li><b>Block phải độc lập</b>: chạy thứ tự bất kỳ, đồng thời hoặc tuần tự → mở rộng theo số SM; chương trình phụ thuộc thứ tự block là <span class="warn">không hợp lệ</span> (bế tắc/sai). Chung con trỏ hàng đợi (atomic) OK; chung khóa: không nên.</li>
+<li>Trong cùng block: trao đổi qua shared/global memory, đồng bộ bằng <code>__syncthreads()</code>. Khác block: <b>không</b> đồng bộ tin cậy được.</li></ul>
+</div><div class="g"><h3>Chỉ số</h3>
+<ul><li>Biến dựng sẵn: <code>threadIdx</code> (3 chiều, duy nhất trong block), <code>blockIdx</code> (2 chiều, trong grid), <code>blockDim</code>, <code>gridDim</code>. Kích thước đặt lúc khởi chạy.</li></ul>
+<pre>int i  = blockIdx.x * blockDim.x + threadIdx.x;          // 1D
+int ix = blockIdx.x*blockDim.x+threadIdx.x;              // cột
+int iy = blockIdx.y*blockDim.y+threadIdx.y;              // hàng
+int idx = iy * dimx + ix;                                // lưu theo hàng
+dim3 block(4,2), grid(dimx/4, dimy/2); kernel&lt;&lt;&lt;grid,block&gt;&gt;&gt;(...);
+kernel&lt;&lt;&lt;4,4&gt;&gt;&gt;: blockIdx.x = 0000 1111 2222 3333, threadIdx.x = 0123 ×4</pre>
+</div><div class="g"><h3>Bộ nhớ</h3>
+<table><tr><th>Loại</th><th>Phạm vi</th><th>Tồn tại</th><th>Đặc điểm</th></tr>
+<tr><td>Thanh ghi / local</td><td>1 luồng</td><td>luồng</td><td>–</td></tr>
+<tr><td><b>Shared</b> <code>__shared__ T x[N]</code></td><td>các luồng trong 1 block</td><td>= block</td><td>nhỏ (~48 KB/block mặc định; 4070: ≤100 KB/SM), độ trễ vài chu kỳ, băng thông rất cao; dùng làm cache lập trình viên quản lý</td></tr>
+<tr><td><b>Global</b></td><td>mọi luồng mọi kernel</td><td>do host quyết định</td><td>lớn (GB), độ trễ 400–800 chu kỳ; mẫu truy cập quyết định băng thông; 4070 đo 438 GB/s</td></tr></table>
+<p>Shared chỉ sống trong block → dữ liệu dùng lại ở kernel sau phải để ở <b>global</b>. CPU/GPU khác không gian địa chỉ (từ CUDA 4.0: UVA, chung không gian địa chỉ ảo); không đoán được con trỏ thuộc host hay device; dereference nhầm bên → lỗi.</p>
+</div><div class="g"><h3>API bộ nhớ</h3>
+<pre>cudaMalloc((void**)&amp;d_x, nbytes);  cudaMemset(d_x, 0, nbytes);  cudaFree(d_x);
+cudaMemcpy(dst, src, nbytes, cudaMemcpyHostToDevice | DeviceToHost | DeviceToDevice);
+cudaDeviceSynchronize();   // host chờ GPU xong (kernel chạy bất đồng bộ)</pre>
+<ul><li><code>cudaMemcpy</code> <b>chặn CPU</b> đến khi chép xong; chỉ bắt đầu khi các lời gọi CUDA trước hoàn tất. Chép không chặn cần <b>bộ nhớ khóa trang</b> (pinned, <code>cudaMallocHost</code>): 26,8 vs 26,0 GB/s (H2D), 26,4 vs 21,3 (D2H). <code>cudaMallocManaged</code>: bộ nhớ hợp nhất.</li></ul>
+</div><div class="g"><h3>SAXPY: y = a·x + y</h3>
+<pre>__global__ void saxpy(int n, float a, float *x, float *y){
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  if (i &lt; n) y[i] = a*x[i] + y[i];      // mỗi luồng 1 phần tử; if chặn tràn
+}
+int nblocks = (n + 255) / 256;           // làm tròn lên
+saxpy&lt;&lt;&lt;nblocks, 256&gt;&gt;&gt;(n, 2.0, d_x, d_y);</pre>
+<p>Trình tự: malloc host → cudaMalloc d_x,d_y → Memcpy H2D (x,y) → kernel → Memcpy D2H (y) → cudaFree.</p>
+<ul><li>Đo (n=2²⁶, RTX 4070): chép vào 25,2 ms, kernel <b>1,84 ms</b>, chép ra 13,2 ms, tổng GPU 40,4 ms vs CPU 15,1 ms. Kernel nhanh CPU ~8× nhưng <b>chép PCIe &gt; 20× thời gian kernel</b> → tính cả chép, GPU chậm hơn CPU. SAXPY chỉ 1 nhân–cộng/phần tử → GPU có lợi khi <b>giữ dữ liệu trên GPU qua nhiều lần tính</b>.</li>
+<li>Băng thông kernel = (đọc x, y + ghi y = 3·n·4 B) / thời gian kernel.</li></ul>
+</div></div></section>
+
+<section class="mx"><h2>Công thức & mẹo làm bài</h2><div class="b"><div class="g">
+<table><tr><th>Cần nhớ</th><th>Công thức</th></tr>
+<tr><td>Speedup</td><td>S = T<sub>tuần tự</sub>/T<sub>song song</sub></td></tr>
+<tr><td>Amdahl</td><td>S(N) = 1/(P/N + (1−P)), S<sub>max</sub> = 1/(1−P)</td></tr>
+<tr><td>Chi phí thông điệp</td><td>t = α + n/β</td></tr>
+<tr><td>Công suất CPU</td><td>∝ f × V²</td></tr>
+<tr><td>Số block CUDA</td><td>⌈n/blockSize⌉ = (n + bs − 1)/bs</td></tr>
+<tr><td>Chỉ số toàn cục</td><td>blockIdx.x·blockDim.x + threadIdx.x</td></tr>
+<tr><td>Chỉ số 2D</td><td>idx = iy·dimx + ix</td></tr>
+<tr><td>Chia khối</td><td>[n·k/p, n·(k+1)/p)</td></tr>
+<tr><td>Cây nhị phân</td><td>⌈log₂ n⌉ bước, n/2 CPU</td></tr></table>
+</div><div class="g"><h3>"Cái gì → cái đó" (hay ra thi)</h3>
+<ul>
+<li>Race condition → <b>reduction</b>/cục bộ rồi gộp (nhanh nhất); mutex/critical mỗi lần lặp = chậm hàng trăm lần.</li>
+<li>Tải không đều → <b>dynamic/guided</b> (OpenMP), <b>manager–worker</b> (MPI). Tải đều → static.</li>
+<li>Biến riêng nhưng chậm → <b>false sharing</b> → alignas(64)/biến cục bộ.</li>
+<li>Đệ quy/cây → <b>task</b> + cutoff + taskwait.</li>
+<li>Hai Send liền nhau, treo với dữ liệu lớn → bế tắc → <b>Sendrecv / Isend–Irecv / đổi thứ tự</b>.</li>
+<li>Hạt quá mịn (task nhỏ, thông điệp nhỏ, kernel nhỏ) → overhead &gt; lợi ích.</li>
+<li>Tăng tốc dừng sớm trong bài tổng mảng/mat–vec/SAXPY → <b>memory-bound</b> (băng thông), không phải thiếu lõi.</li>
+<li>GPU chậm hơn CPU khi tính cả chép → chi phí PCIe; giữ dữ liệu trên GPU.</li>
+<li>Shared memory ↔ Threads/OpenMP/Pthreads; Distributed ↔ MPI; Hybrid ↔ MPI + OpenMP; Data parallel ↔ SIMD/CUDA.</li>
+<li>EREW ⊂ CREW ⊂ CRCW (về khả năng chạy thuật toán đúng): đúng trên EREW thì đúng trên các loại còn lại.</li></ul>
+<p style="font-size:11px;color:#788">Định dạng đề: 40–60 MCQ + 1–2 tự luận, 60–70 phút, đóng sách, chỉ máy tính bỏ túi. Số liệu đo (Ryzen 9 9900X, RTX 4070) lấy từ ghi chú chương 3–5; đề có thể hỏi xu hướng hơn là con số.</p>
+</div></div></section>
+</div></body></html>
